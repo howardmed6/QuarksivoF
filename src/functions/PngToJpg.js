@@ -1,15 +1,15 @@
 const { app } = require('@azure/functions');
-const { processJpgToPng } = require('../modules/jpgToPngConverter');
+const { processPngToJpg } = require('../modules/pngToJpgConverter');
 const parseMultipart = require('parse-multipart-data');
 const sharp = require('sharp');
 
 app.http('ImageConverter', {
     methods: ['POST'],
     authLevel: 'anonymous',
-    route: 'convert/jpg-to-png',
+    route: 'convert/png-to-jpg',
     handler: async (request, context) => {
         const startTime = Date.now();
-        context.log('🚀 Iniciando conversión JPG a PNG');
+        context.log('🚀 Iniciando conversión PNG a JPG');
         
         try {
             const contentType = request.headers.get('content-type');
@@ -97,15 +97,15 @@ app.http('ImageConverter', {
             context.log(`⚙️ Opciones: ${JSON.stringify(options)}`);
             
             // Procesar imagen usando tu módulo (que devuelve un objeto)
-            context.log('🔄 Procesando con módulo jpgToPngConverter...');
-            const processingResult = await processJpgToPng(
+            context.log('🔄 Procesando con módulo pngToJpgConverter...');
+            const processingResult = await processPngToJpg(
                 imageBuffer, 
                 options, // processingOptions
                 {        // conversionParams
-                    pngOptions: {
+                    jpgOptions: {
                         quality: 90,
-                        compressionLevel: 6,
-                        progressive: false
+                        progressive: false,
+                        mozjpeg: true
                     }
                 }
             );
@@ -134,13 +134,13 @@ app.http('ImageConverter', {
                 };
             }
             
-            const pngBuffer = processingResult.buffer;
-            context.log(`📦 Buffer PNG validado: ${pngBuffer.length} bytes`);
+            const jpgBuffer = processingResult.buffer;
+            context.log(`📦 Buffer JPG validado: ${jpgBuffer.length} bytes`);
             
             // Convertir a base64 con validación
             let base64Image;
             try {
-                base64Image = pngBuffer.toString('base64');
+                base64Image = jpgBuffer.toString('base64');
                 context.log(`📝 Base64 generado: ${base64Image.length} caracteres`);
                 
                 if (!base64Image || base64Image.length < 100) {
@@ -177,11 +177,11 @@ app.http('ImageConverter', {
                 jsonBody: {
                     success: true,
                     message: 'Conversión completada exitosamente',
-                    image: `data:image/png;base64,${base64Image}`,
+                    image: `data:image/jpeg;base64,${base64Image}`,
                     metadata: {
                         width: processingResult.metadata.final.width,
                         height: processingResult.metadata.final.height,
-                        format: 'png',
+                        format: 'jpeg',
                         originalFormat: processingResult.metadata.original.format
                     },
                     originalSize: processingResult.metadata.original.size,
@@ -215,7 +215,7 @@ app.http('ImageConverter', {
 app.http('ImageConverterOptions', {
     methods: ['OPTIONS'],
     authLevel: 'anonymous',
-    route: 'convert/jpg-to-png',
+    route: 'convert/png-to-jpg',
     handler: async (request, context) => {
         context.log('🔄 CORS preflight request');
         
@@ -247,7 +247,7 @@ app.http('HealthCheck', {
             jsonBody: {
                 status: 'healthy',
                 timestamp: new Date().toISOString(),
-                service: 'JPG to PNG Converter',
+                service: 'PNG to JPG Converter',
                 version: '1.0.0'
             }
         };
