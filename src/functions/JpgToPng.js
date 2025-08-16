@@ -1,6 +1,6 @@
 const { app } = require('@azure/functions');
 const { processJpgToPng } = require('../modules/jpgToPngConverter');
-const multipart = require('multipart-parser');
+const multipart = require('parse-multipart-data');
 
 app.http('ImageConverter', {
     methods: ['POST'],
