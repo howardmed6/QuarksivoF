@@ -1,6 +1,7 @@
 const { app } = require('@azure/functions');
 const { processJpgToPng } = require('../modules/jpgToPngConverter');
-const multipart = require('parse-multipart-data');
+const parseMultipart = require('parse-multipart-data');
+const sharp = require('sharp');
 
 app.http('ImageConverter', {
     methods: ['POST'],
@@ -33,7 +34,7 @@ app.http('ImageConverter', {
                 };
             }
 
-            // Parsear multipart data
+            // Obtener body y boundary
             const body = await request.arrayBuffer();
             const boundary = contentType.split('boundary=')[1];
             
@@ -54,7 +55,9 @@ app.http('ImageConverter', {
             }
 
             context.log('🔍 Parseando multipart con boundary:', boundary);
-            const parts = multipart.Parse(Buffer.from(body), boundary);
+            
+            // SINTAXIS CORREGIDA para parse-multipart-data
+            const parts = parseMultipart(Buffer.from(body), boundary);
             context.log('📦 Partes encontradas:', parts.length);
             
             let imageBuffer = null;
@@ -99,10 +102,13 @@ app.http('ImageConverter', {
             context.log(`⚙️ Opciones: ${JSON.stringify(options)}`);
             
             // Procesar imagen
-            const result = await processJpgToPng(imageBuffer, options);
+            const pngBuffer = await processJpgToPng(imageBuffer, options);
+            
+            // Obtener metadata de la imagen original
+            const originalMetadata = await sharp(imageBuffer).metadata();
             
             // Convertir a base64
-            const base64Image = result.buffer.toString('base64');
+            const base64Image = pngBuffer.toString('base64');
             const processingTime = Date.now() - startTime;
             
             context.log(`✅ Conversión completada en ${processingTime}ms`);
@@ -119,9 +125,14 @@ app.http('ImageConverter', {
                     success: true,
                     message: 'Conversión completada exitosamente',
                     image: `data:image/png;base64,${base64Image}`,
-                    metadata: result.metadata,
+                    metadata: {
+                        width: originalMetadata.width,
+                        height: originalMetadata.height,
+                        format: 'png',
+                        originalFormat: originalMetadata.format
+                    },
                     originalSize: imageBuffer.length,
-                    processedSize: result.buffer.length,
+                    processedSize: pngBuffer.length,
                     processingTime: processingTime,
                     appliedOptions: options
                 }
