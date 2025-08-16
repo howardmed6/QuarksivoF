@@ -12,7 +12,6 @@ app.http('ImageConverter', {
         context.log('🚀 Iniciando conversión JPG a PNG');
         
         try {
-            // Validar Content-Type
             const contentType = request.headers.get('content-type');
             context.log('Content-Type recibido:', contentType);
             
@@ -34,7 +33,6 @@ app.http('ImageConverter', {
                 };
             }
 
-            // Obtener body y boundary
             const body = await request.arrayBuffer();
             const boundary = contentType.split('boundary=')[1];
             
@@ -56,14 +54,12 @@ app.http('ImageConverter', {
 
             context.log('🔍 Parseando multipart con boundary:', boundary);
             
-            // SINTAXIS CORREGIDA para parse-multipart-data
-            const parts = parseMultipart(Buffer.from(body), boundary);
+            const parts = parseMultipart.parse(Buffer.from(body), boundary);
             context.log('📦 Partes encontradas:', parts.length);
             
             let imageBuffer = null;
             let options = [];
             
-            // Procesar partes del formulario
             for (const part of parts) {
                 context.log('📄 Procesando parte:', part.name, 'Tamaño:', part.data?.length);
                 
@@ -81,7 +77,6 @@ app.http('ImageConverter', {
                 }
             }
             
-            // Validar que se recibió archivo
             if (!imageBuffer || imageBuffer.length === 0) {
                 context.log('❌ No se encontró archivo de imagen');
                 return {
@@ -101,16 +96,76 @@ app.http('ImageConverter', {
             context.log(`📁 Archivo recibido: ${(imageBuffer.length/1024/1024).toFixed(2)}MB`);
             context.log(`⚙️ Opciones: ${JSON.stringify(options)}`);
             
+            // Validar que es una imagen válida antes de procesar
+            let originalMetadata;
+            try {
+                originalMetadata = await sharp(imageBuffer).metadata();
+                context.log(`📸 Imagen válida: ${originalMetadata.width}x${originalMetadata.height}, formato: ${originalMetadata.format}`);
+            } catch (metadataError) {
+                context.log('❌ Error obteniendo metadata:', metadataError.message);
+                return {
+                    status: 400,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    jsonBody: {
+                        success: false,
+                        error: 'Archivo no es una imagen válida',
+                        code: 'INVALID_IMAGE'
+                    }
+                };
+            }
+            
             // Procesar imagen
             const pngBuffer = await processJpgToPng(imageBuffer, options);
+            context.log(`📊 Buffer PNG generado: ${pngBuffer.length} bytes`);
             
-            // Obtener metadata de la imagen original
-            const originalMetadata = await sharp(imageBuffer).metadata();
+            // Validar que el buffer PNG no esté vacío
+            if (!pngBuffer || pngBuffer.length === 0) {
+                context.log('❌ Buffer PNG vacío después del procesamiento');
+                return {
+                    status: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    jsonBody: {
+                        success: false,
+                        error: 'Error en el procesamiento de la imagen',
+                        code: 'PROCESSING_ERROR'
+                    }
+                };
+            }
             
-            // Convertir a base64
-            const base64Image = pngBuffer.toString('base64');
+            // Convertir a base64 con validación
+            let base64Image;
+            try {
+                base64Image = pngBuffer.toString('base64');
+                context.log(`📝 Base64 generado: ${base64Image.length} caracteres`);
+                
+                // Validar que el base64 no esté vacío
+                if (!base64Image || base64Image.length < 100) {
+                    throw new Error('Base64 demasiado corto o vacío');
+                }
+                
+            } catch (base64Error) {
+                context.log('❌ Error convirtiendo a base64:', base64Error.message);
+                return {
+                    status: 500,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    jsonBody: {
+                        success: false,
+                        error: 'Error convirtiendo imagen a base64',
+                        code: 'BASE64_ERROR'
+                    }
+                };
+            }
+            
             const processingTime = Date.now() - startTime;
-            
             context.log(`✅ Conversión completada en ${processingTime}ms`);
             
             return {
@@ -139,7 +194,8 @@ app.http('ImageConverter', {
             };
             
         } catch (error) {
-            context.log('❌ Error en conversión:', error);
+            context.log('❌ Error crítico en conversión:', error.message);
+            context.log('Stack trace:', error.stack);
             
             return {
                 status: 500,
@@ -157,7 +213,6 @@ app.http('ImageConverter', {
     }
 });
 
-// Función para manejar CORS preflight
 app.http('ImageConverterOptions', {
     methods: ['OPTIONS'],
     authLevel: 'anonymous',
@@ -177,7 +232,6 @@ app.http('ImageConverterOptions', {
     }
 });
 
-// Función de salud para verificar que la API funciona
 app.http('HealthCheck', {
     methods: ['GET'],
     authLevel: 'anonymous',
