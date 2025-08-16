@@ -139,7 +139,7 @@ app.http('ImageConverter', {
             };
             
         } catch (error) {
-            context.log.error('❌ Error en conversión:', error);
+            context.log('❌ Error en conversión:', error);
             
             return {
                 status: 500,
