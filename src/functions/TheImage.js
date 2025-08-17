@@ -3,28 +3,7 @@ const { app } = require('@azure/functions');
 // Utils
 const { parseImageRequest, extractConversionFormat } = require('../utils/requestParser');
 const { createSuccessResponse, createErrorResponse, createCorsResponse, createHealthResponse } = require('../utils/responseBuilder');
-
-// Módulos de conversión
-const JpgToPng = require('../modules/JpgToPng');
-const PngToJpg = require('../modules/PngToJpg');
-
-/**
- * Mapeo de conversiones disponibles
- */
-const CONVERSION_MODULES = {
-    'jpg_to_png': {
-        processor: JpgToPng.processJpgToPng,
-        outputFormat: 'png',
-        conversionOptions: { pngOptions: { quality: 90, compressionLevel: 6, progressive: false } }
-    },
-    'png_to_jpg': {
-        processor: PngToJpg.processPngToJpg,
-        outputFormat: 'jpg',
-        conversionOptions: { jpgOptions: { quality: 90, progressive: false, mozjpeg: true } }
-    }
-    // Aquí puedes agregar fácilmente más conversiones:
-    // 'webp_to_jpg': { processor: WebpToJpg.processWebpToJpg, outputFormat: 'jpg', ... }
-};
+const { getConversionConfig, isConversionSupported } = require('../utils/moduleLoader');
 
 /**
  * Procesador principal de conversión de imágenes
@@ -56,10 +35,7 @@ app.http('ImageConverterMain', {
             context.log(`⚙️ Opciones: ${JSON.stringify(options)}`);
 
             // Verificar si la conversión está soportada
-            const conversionKey = conversionType.replace('-', '_');
-            const conversionConfig = CONVERSION_MODULES[conversionKey];
-            
-            if (!conversionConfig) {
+            if (!isConversionSupported(conversionType)) {
                 context.log(`❌ Conversión no soportada: ${conversionType}`);
                 return createErrorResponse(
                     400,
@@ -68,8 +44,10 @@ app.http('ImageConverterMain', {
                 );
             }
 
+            const conversionConfig = getConversionConfig(conversionType);
+
             // Procesar imagen
-            context.log(`🔄 Procesando con módulo: ${conversionKey}`);
+            context.log(`🔄 Procesando con módulo: ${conversionType}`);
             const processingResult = await conversionConfig.processor(
                 imageBuffer,
                 options,
