@@ -65,7 +65,7 @@ const CONVERSION_MODULES = {
                 quality: 80,
                 lossless: false,
                 effort: 4,
-                smartSubsample: true
+                smartSubsample: true 
             }
         }
     },
