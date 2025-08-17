@@ -1,10 +1,31 @@
-// .devcontainer/devcontainer.json
 {
   "name": "QuarksivoF Dev Container",
   "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu-22.04",
   "features": {
-    "node": "lts"
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "version": "latest"
+    }
   },
-  "postCreateCommand": "bash /workspaces/QuarksivoF/.devcontainer/setup.sh",
-  "remoteUser": "vscode"
+  "postCreateCommand": [
+    "bash",
+    "-c",
+    "chmod +x ${containerWorkspaceFolder}/.devcontainer/setup.sh && ${containerWorkspaceFolder}/.devcontainer/setup.sh"
+  ],
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-node-azure-pack"
+      ]
+    }
+  },
+  "forwardPorts": [7071],
+  "portsAttributes": {
+    "7071": {
+      "label": "Azure Functions"
+    }
+  }
 }
