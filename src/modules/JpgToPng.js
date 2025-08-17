@@ -1,11 +1,5 @@
 const sharp = require('sharp');
-// Importar módulo compartido - ajustar ruta según estructura
 const sharedImageProcessing = require('../helpers/shared-image-processing');
-
-/**
- * Conversor específico de JPG a PNG
- * Usa el módulo compartido para opciones adicionales
- */
 
 /**
  * Convierte imagen JPG/JPEG a PNG
@@ -19,13 +13,12 @@ const convertJpgToPng = async (imageBuffer, options = {}) => {
         compressionLevel = 6,
         adaptiveFiltering = true,
         progressive = false,
-        palette = false // Para PNG-8 si se desea
+        palette = false
     } = options;
 
     try {
         let pipeline = sharp(imageBuffer);
 
-        // Configurar salida PNG
         pipeline = pipeline.png({
             quality: quality,
             compressionLevel: compressionLevel,
@@ -52,47 +45,46 @@ const validateJpgImage = (imageBuffer) => {
         return false;
     }
     
-    // Verificar magic bytes de JPG/JPEG (FF D8 FF)
     const jpegSignature = imageBuffer.slice(0, 3).toString('hex').toUpperCase();
     return jpegSignature === 'FFD8FF';
 };
 
 /**
- * Función principal que maneja todo el proceso de conversión
+ * Procesa conversión completa de JPG a PNG
  * @param {Buffer} imageBuffer - Buffer de imagen JPG
- * @param {Array} processingOptions - Opciones de procesamiento ['reduce-noise', 'improve-quality', 'optimize-size']
+ * @param {Array} processingOptions - Opciones de procesamiento
  * @param {Object} conversionParams - Parámetros específicos de conversión
  * @returns {Promise<Object>} - Resultado con buffer PNG y metadata
  */
 const processJpgToPng = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
-        // 1. Validar imagen JPG
         if (!validateJpgImage(imageBuffer)) {
             throw new Error('El archivo no es una imagen JPG/JPEG válida');
         }
 
-        // 2. Obtener metadata original
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
         console.log(`📥 Procesando JPG: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
-        // 3. Aplicar opciones de procesamiento usando módulo compartido
         let processedBuffer = imageBuffer;
         
         if (processingOptions.length > 0) {
-            processedBuffer = await sharedImageProcessing.processImageWithOptions(
-                imageBuffer, 
-                processingOptions, 
-                conversionParams
-            );
+            try {
+                processedBuffer = await sharedImageProcessing.processImageWithOptions(
+                    imageBuffer, 
+                    processingOptions, 
+                    conversionParams
+                );
+            } catch (sharedError) {
+                console.log('⚠️ Error en shared processing, usando buffer original:', sharedError.message);
+                processedBuffer = imageBuffer;
+            }
         }
 
-        // 4. Convertir a PNG (paso final)
         console.log('🔄 Convirtiendo a formato PNG...');
         const pngBuffer = await convertJpgToPng(processedBuffer, conversionParams.pngOptions);
 
-        // 5. Obtener metadata final
         const finalMetadata = await sharp(pngBuffer).metadata();
         const finalSize = pngBuffer.length;
 
