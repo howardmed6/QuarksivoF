@@ -1,0 +1,10 @@
+// .devcontainer/devcontainer.json
+{
+  "name": "QuarksivoF Dev Container",
+  "image": "mcr.microsoft.com/vscode/devcontainers/base:ubuntu-22.04",
+  "features": {
+    "node": "lts"
+  },
+  "postCreateCommand": "bash /workspaces/QuarksivoF/.devcontainer/setup.sh",
+  "remoteUser": "vscode"
+}
