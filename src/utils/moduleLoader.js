@@ -8,13 +8,20 @@ const JpgToPng = require('../modules/JpgToPng');
 const PngToJpg = require('../modules/PngToJpg');
 const WebpToJpg = require('../modules/WebpToJpg');
 
-// Nuevos módulos de conversión
+// Módulos de conversión WebP
 const JpgToWebp = require('../modules/JpgToWebp');
 const PngToWebp = require('../modules/PngToWebp');
 const WebpToPng = require('../modules/WebpToPng');
+
+// Módulos de conversión AVIF
 const AvifToJpg = require('../modules/AvifToJpg');
 const JpgToAvif = require('../modules/JpgToAvif');
 const PngToAvif = require('../modules/PngToAvif');
+
+// Nuevos módulos de conversión HEIC y GIF
+const HeicToJpg = require('../modules/HeicToJpg');
+const HeicToPng = require('../modules/HeicToPng');
+const GifToMp4 = require('../modules/GifToMp4');
 
 /**
  * Configuración centralizada de todas las conversiones
@@ -56,7 +63,7 @@ const CONVERSION_MODULES = {
         }
     },
 
-    // Nuevas conversiones WEBP
+    // Conversiones WEBP
     'jpg-to-webp': {
         processor: JpgToWebp.processJpgToWebp,
         outputFormat: 'webp',
@@ -95,7 +102,7 @@ const CONVERSION_MODULES = {
         }
     },
 
-    // Nuevas conversiones AVIF
+    // Conversiones AVIF
     'avif-to-jpg': {
         processor: AvifToJpg.processAvifToJpg,
         outputFormat: 'jpg',
@@ -131,6 +138,47 @@ const CONVERSION_MODULES = {
                 chromaSubsampling: '4:4:4'
             }
         }
+    },
+
+    // Nuevas conversiones HEIC
+    'heic-to-jpg': {
+        processor: HeicToJpg.processHeicToJpg,
+        outputFormat: 'jpg',
+        conversionOptions: {
+            jpgOptions: {
+                quality: 90,
+                progressive: false,
+                mozjpeg: true,
+                background: { r: 255, g: 255, b: 255 }
+            }
+        }
+    },
+    'heic-to-png': {
+        processor: HeicToPng.processHeicToPng,
+        outputFormat: 'png',
+        conversionOptions: {
+            pngOptions: {
+                quality: 90,
+                compressionLevel: 6,
+                progressive: false,
+                palette: false
+            }
+        }
+    },
+
+    // Nuevas conversiones GIF
+    'gif-to-mp4': {
+        processor: GifToMp4.processGifToMp4,
+        outputFormat: 'mp4',
+        conversionOptions: {
+            mp4Options: {
+                quality: 23, // CRF value
+                fps: null, // mantener fps original
+                scale: null, // mantener escala original
+                codec: 'libx264',
+                preset: 'medium'
+            }
+        }
     }
 };
 
@@ -162,7 +210,7 @@ const isConversionSupported = (conversionType) => {
 
 /**
  * Obtiene conversiones disponibles por formato de entrada
- * @param {string} inputFormat - Formato de entrada (jpg, png, webp, avif)
+ * @param {string} inputFormat - Formato de entrada (jpg, png, webp, avif, heic, gif)
  * @returns {Array<string>} - Array de conversiones disponibles
  */
 const getConversionsByInputFormat = (inputFormat) => {
@@ -174,12 +222,57 @@ const getConversionsByInputFormat = (inputFormat) => {
 
 /**
  * Obtiene conversiones disponibles por formato de salida
- * @param {string} outputFormat - Formato de salida (jpg, png, webp, avif)
+ * @param {string} outputFormat - Formato de salida (jpg, png, webp, avif, mp4)
  * @returns {Array<string>} - Array de conversiones disponibles
  */
 const getConversionsByOutputFormat = (outputFormat) => {
     const lowerFormat = outputFormat.toLowerCase();
     return Object.keys(CONVERSION_MODULES).filter(key => 
+        key.endsWith('-to-' + lowerFormat)
+    );
+};
+
+/**
+ * Obtiene información sobre los formatos soportados
+ * @returns {Object} - Información de formatos de entrada y salida
+ */
+const getSupportedFormats = () => {
+    const inputFormats = new Set();
+    const outputFormats = new Set();
+    
+    Object.keys(CONVERSION_MODULES).forEach(key => {
+        const [input, output] = key.split('-to-');
+        inputFormats.add(input);
+        outputFormats.add(output);
+    });
+
+    return {
+        input: Array.from(inputFormats).sort(),
+        output: Array.from(outputFormats).sort(),
+        total: Object.keys(CONVERSION_MODULES).length
+    };
+};
+
+/**
+ * Verifica si un formato específico es soportado como entrada
+ * @param {string} format - Formato a verificar
+ * @returns {boolean} - true si es soportado como entrada
+ */
+const isInputFormatSupported = (format) => {
+    const lowerFormat = format.toLowerCase();
+    return Object.keys(CONVERSION_MODULES).some(key => 
+        key.startsWith(lowerFormat + '-to-')
+    );
+};
+
+/**
+ * Verifica si un formato específico es soportado como salida
+ * @param {string} format - Formato a verificar
+ * @returns {boolean} - true si es soportado como salida
+ */
+const isOutputFormatSupported = (format) => {
+    const lowerFormat = format.toLowerCase();
+    return Object.keys(CONVERSION_MODULES).some(key => 
         key.endsWith('-to-' + lowerFormat)
     );
 };
@@ -190,5 +283,8 @@ module.exports = {
     getSupportedConversions,
     isConversionSupported,
     getConversionsByInputFormat,
-    getConversionsByOutputFormat
+    getConversionsByOutputFormat,
+    getSupportedFormats,
+    isInputFormatSupported,
+    isOutputFormatSupported
 };
