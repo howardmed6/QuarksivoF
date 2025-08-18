@@ -23,6 +23,11 @@ const HeicToJpg = require('../modules/HeicToJpg');
 const HeicToPng = require('../modules/HeicToPng');
 const GifToMp4 = require('../modules/GifToMp4');
 
+
+const SvgToWebp = require('../modules/SvgToWebp');
+const SvgToPng = require('../modules/SvgToPng');
+const SvgToJpg = require('../modules/SvgToJpg');
+const SvgToJpeg = require('../modules/SvgToJpeg');
 /**
  * Configuración centralizada de todas las conversiones
  * @type {Object} - Mapeo de conversiones con sus procesadores y opciones
@@ -162,6 +167,70 @@ const CONVERSION_MODULES = {
                 compressionLevel: 6,
                 progressive: false,
                 palette: false
+            }
+        }
+    },
+    'svg-to-webp': {
+        processor: SvgToWebp.processSvgToWebp,
+        outputFormat: 'webp',
+        conversionOptions: {
+            webpOptions: {
+                quality: 90,
+                lossless: false,
+                effort: 4,
+                background: { r: 255, g: 255, b: 255, alpha: 1 },
+                width: null,
+                height: null,
+                density: 72
+            }
+        }
+    },
+
+    'svg-to-png': {
+        processor: SvgToPng.processSvgToPng,
+        outputFormat: 'png',
+        conversionOptions: {
+            pngOptions: {
+                compressionLevel: 6,
+                progressive: false,
+                palette: false,
+                background: null, // null mantiene transparencia
+                width: null,
+                height: null,
+                density: 72
+            }
+        }
+    },
+
+    'svg-to-jpg': {
+        processor: SvgToJpg.processSvgToJpg,
+        outputFormat: 'jpg',
+        conversionOptions: {
+            jpgOptions: {
+                quality: 90,
+                progressive: false,
+                mozjpeg: true,
+                background: { r: 255, g: 255, b: 255 },
+                width: null,
+                height: null,
+                density: 72
+            }
+        }
+    },
+
+    'svg-to-jpeg': {
+        processor: SvgToJpeg.processSvgToJpeg,
+        outputFormat: 'jpeg',
+        conversionOptions: {
+            jpegOptions: {
+                quality: 85,
+                progressive: true,
+                mozjpeg: true,
+                background: { r: 255, g: 255, b: 255 },
+                width: null,
+                height: null,
+                density: 72,
+                optimizeCoding: true
             }
         }
     },
