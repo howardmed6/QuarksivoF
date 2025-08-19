@@ -1,14 +1,14 @@
-// ========== HEIC to PNG ==========
+// ========== BMP to PNG ==========
 const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
 /**
- * Convierte imagen HEIC a PNG
- * @param {Buffer} imageBuffer - Buffer de imagen HEIC
+ * Convierte imagen BMP a PNG
+ * @param {Buffer} imageBuffer - Buffer de imagen BMP
  * @param {Object} options - Opciones de conversión PNG
  * @returns {Promise<Buffer>} - Buffer de imagen PNG
  */
-const convertHeicToPng = async (imageBuffer, options = {}) => {
+const convertBmpToPng = async (imageBuffer, options = {}) => {
     const {
         quality = 90,
         compressionLevel = 6,
@@ -19,7 +19,7 @@ const convertHeicToPng = async (imageBuffer, options = {}) => {
     try {
         let pipeline = sharp(imageBuffer);
 
-        // HEIC puede tener transparencia, mantenerla en PNG
+        // BMP no tiene transparencia, convertir directamente a PNG
         pipeline = pipeline.png({
             quality: quality,
             compressionLevel: compressionLevel,
@@ -31,53 +31,63 @@ const convertHeicToPng = async (imageBuffer, options = {}) => {
         return pngBuffer;
         
     } catch (error) {
-        throw new Error(`Error convirtiendo HEIC a PNG: ${error.message}`);
+        throw new Error(`Error convirtiendo BMP a PNG: ${error.message}`);
     }
 };
 
 /**
- * Valida que el buffer sea una imagen HEIC válida
+ * Valida que el buffer sea una imagen BMP válida
  * @param {Buffer} imageBuffer - Buffer a validar
- * @returns {boolean} - true si es HEIC válido
+ * @returns {boolean} - true si es BMP válido
  */
-const validateHeicImage = (imageBuffer) => {
-    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
+const validateBmpImage = (imageBuffer) => {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 54) {
         return false;
     }
     
-    // Verificar HEIC magic bytes
-    // HEIC files start with specific patterns
-    const header = imageBuffer.slice(0, 12);
-    
-    // Verificar si es un archivo ISO base media (ftyp box)
-    if (header.slice(4, 8).toString('ascii') === 'ftyp') {
-        const brand = header.slice(8, 12).toString('ascii');
-        // Verificar marcas HEIC conocidas
-        return brand === 'heic' || brand === 'heix' || brand === 'hevc' || 
-               brand === 'hevx' || brand === 'heim' || brand === 'hems' ||
-               brand === 'mif1' || brand === 'msf1';
-    }
-    
-    return false;
+    // Verificar magic bytes de BMP (BM)
+    return imageBuffer[0] === 0x42 && imageBuffer[1] === 0x4D;
 };
 
 /**
- * Procesa conversión completa de HEIC a PNG
- * @param {Buffer} imageBuffer - Buffer de imagen HEIC
+ * Valida que el buffer sea una imagen PNG válida (para compatibilidad con otros módulos)
+ * @param {Buffer} imageBuffer - Buffer a validar
+ * @returns {boolean} - true si es PNG válido
+ */
+const validatePngImage = (imageBuffer) => {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 8) {
+        return false;
+    }
+    
+    // Verificar PNG signature (89 50 4E 47 0D 0A 1A 0A)
+    const pngSignature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    
+    for (let i = 0; i < pngSignature.length; i++) {
+        if (imageBuffer[i] !== pngSignature[i]) {
+            return false;
+        }
+    }
+    
+    return true;
+};
+
+/**
+ * Procesa conversión completa de BMP a PNG
+ * @param {Buffer} imageBuffer - Buffer de imagen BMP
  * @param {Array} processingOptions - Opciones de procesamiento
  * @param {Object} conversionParams - Parámetros específicos de conversión
  * @returns {Promise<Object>} - Resultado con buffer PNG y metadata
  */
-const processHeicToPng = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
+const processBmpToPng = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
-        if (!validateHeicImage(imageBuffer)) {
-            throw new Error('El archivo no es una imagen HEIC válida');
+        if (!validateBmpImage(imageBuffer)) {
+            throw new Error('El archivo no es una imagen BMP válida');
         }
 
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
-        console.log(`📥 Procesando HEIC: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando BMP: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
         let processedBuffer = imageBuffer;
         
@@ -95,7 +105,7 @@ const processHeicToPng = async (imageBuffer, processingOptions = [], conversionP
         }
 
         console.log('🔄 Convirtiendo a formato PNG...');
-        const pngBuffer = await convertHeicToPng(processedBuffer, conversionParams.pngOptions);
+        const pngBuffer = await convertBmpToPng(processedBuffer, conversionParams.pngOptions);
 
         const finalMetadata = await sharp(pngBuffer).metadata();
         const finalSize = pngBuffer.length;
@@ -132,12 +142,13 @@ const processHeicToPng = async (imageBuffer, processingOptions = [], conversionP
         };
 
     } catch (error) {
-        throw new Error(`Error en proceso HEIC->PNG: ${error.message}`);
+        throw new Error(`Error en proceso BMP->PNG: ${error.message}`);
     }
 };
 
 module.exports = {
-    convertHeicToPng,
-    validateHeicImage,
-    processHeicToPng
+    convertBmpToPng,
+    validateBmpImage,
+    validatePngImage,  // Para compatibilidad con otros módulos
+    processBmpToPng
 };

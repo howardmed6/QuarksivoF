@@ -2,6 +2,12 @@
 const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
+/**
+ * Convierte imagen GIF a PNG
+ * @param {Buffer} imageBuffer - Buffer de imagen GIF
+ * @param {Object} options - Opciones de conversión PNG
+ * @returns {Promise<Buffer>} - Buffer de imagen PNG
+ */
 const convertGifToPng = async (imageBuffer, options = {}) => {
     const {
         quality = 90,
@@ -28,6 +34,28 @@ const convertGifToPng = async (imageBuffer, options = {}) => {
     }
 };
 
+/**
+ * Valida que el buffer sea una imagen GIF válida
+ * @param {Buffer} imageBuffer - Buffer a validar
+ * @returns {boolean} - true si es GIF válido
+ */
+const validateGifImage = (imageBuffer) => {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 6) {
+        return false;
+    }
+    
+    // Verificar GIF signature (GIF87a o GIF89a)
+    const signature = imageBuffer.slice(0, 6).toString('ascii');
+    return signature === 'GIF87a' || signature === 'GIF89a';
+};
+
+/**
+ * Procesa conversión completa de GIF a PNG
+ * @param {Buffer} imageBuffer - Buffer de imagen GIF
+ * @param {Array} processingOptions - Opciones de procesamiento
+ * @param {Object} conversionParams - Parámetros específicos de conversión
+ * @returns {Promise<Object>} - Resultado con buffer PNG y metadata
+ */
 const processGifToPng = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
         if (!validateGifImage(imageBuffer)) {
