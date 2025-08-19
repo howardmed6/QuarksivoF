@@ -17,6 +17,12 @@ const WebpToPng = require('../modules/WebpToPng');
 const AvifToJpg = require('../modules/AvifToJpg');
 const JpgToAvif = require('../modules/JpgToAvif');
 const PngToAvif = require('../modules/PngToAvif');
+const HeicToWebp = require('../modules/HeicToWebp');
+const HeicToAvif = require('../modules/HeicToAvif');
+const JpgToHeic = require('../modules/JpgToHeic');
+const PngToHeic = require('../modules/PngToHeic');
+const WebpToHeic = require('../modules/WebpToHeic');
+const AvifToHeic = require('../modules/AvifToHeic');
 
 // Nuevos módulos de conversión HEIC y GIF
 const HeicToJpg = require('../modules/HeicToJpg');
@@ -63,6 +69,72 @@ const CONVERSION_MODULES = {
             }
         }
     },
+    'heic-to-webp': {
+   processor: HeicToWebp.processHeicToWebp,
+   outputFormat: 'webp',
+   conversionOptions: {
+       webpOptions: {
+           quality: 80,
+           effort: 4,
+           lossless: false
+       }
+   }
+},
+'heic-to-avif': {
+   processor: HeicToAvif.processHeicToAvif,
+   outputFormat: 'avif',
+   conversionOptions: {
+       avifOptions: {
+           quality: 50,
+           effort: 4,
+           speed: 8
+       }
+   }
+},
+'jpg-to-heic': {
+   processor: JpgToHeic.processJpgToHeic,
+   outputFormat: 'heif',
+   conversionOptions: {
+       heicOptions: {
+           quality: 50,
+           compression: 'av1',
+           effort: 4
+       }
+   }
+},
+'png-to-heic': {
+   processor: PngToHeic.processPngToHeic,
+   outputFormat: 'heif',
+   conversionOptions: {
+       heicOptions: {
+           quality: 50,
+           compression: 'av1',
+           effort: 4
+       }
+   }
+},
+'webp-to-heic': {
+   processor: WebpToHeic.processWebpToHeic,
+   outputFormat: 'heif',
+   conversionOptions: {
+       heicOptions: {
+           quality: 50,
+           compression: 'av1',
+           effort: 4
+       }
+   }
+},
+'avif-to-heic': {
+   processor: AvifToHeic.processAvifToHeic,
+   outputFormat: 'heif',
+   conversionOptions: {
+       heicOptions: {
+           quality: 50,
+           compression: 'av1',
+           effort: 4
+       }
+   }
+},
     'webp-to-jpg': {
         processor: WebpToJpg.processWebpToJpg,
         outputFormat: 'jpg',
