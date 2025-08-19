@@ -2,20 +2,23 @@
 const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
+/**
+ * Convierte imagen BMP a JPG
+ * @param {Buffer} imageBuffer - Buffer de imagen BMP
+ * @param {Object} options - Opciones de conversión JPG
+ * @returns {Promise<Buffer>} - Buffer de imagen JPG
+ */
 const convertBmpToJpg = async (imageBuffer, options = {}) => {
     const {
-        quality = 90,
-        progressive = false,
-        mozjpeg = true,
-        background = { r: 255, g: 255, b: 255 }
+        quality = 80,
+        progressive = true,
+        mozjpeg = true
     } = options;
 
     try {
         let pipeline = sharp(imageBuffer);
 
-        // Aplicar fondo si hay transparencia
-        pipeline = pipeline.flatten({ background });
-
+        // BMP no tiene transparencia, convertir directamente a JPG
         pipeline = pipeline.jpeg({
             quality: quality,
             progressive: progressive,
@@ -30,15 +33,27 @@ const convertBmpToJpg = async (imageBuffer, options = {}) => {
     }
 };
 
+/**
+ * Valida que el buffer sea una imagen BMP válida
+ * @param {Buffer} imageBuffer - Buffer a validar
+ * @returns {boolean} - true si es BMP válido
+ */
 const validateBmpImage = (imageBuffer) => {
-    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 2) {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 54) {
         return false;
     }
     
-    // Verificar magic bytes de BMP
-    return imageBuffer[0] === 0x42 && imageBuffer[1] === 0x4D; // "BM"
+    // Verificar magic bytes de BMP (BM)
+    return imageBuffer[0] === 0x42 && imageBuffer[1] === 0x4D;
 };
 
+/**
+ * Procesa conversión completa de BMP a JPG
+ * @param {Buffer} imageBuffer - Buffer de imagen BMP
+ * @param {Array} processingOptions - Opciones de procesamiento
+ * @param {Object} conversionParams - Parámetros específicos de conversión
+ * @returns {Promise<Object>} - Resultado con buffer JPG y metadata
+ */
 const processBmpToJpg = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
         if (!validateBmpImage(imageBuffer)) {

@@ -28,7 +28,6 @@ const SvgToWebp = require('../modules/SvgToWebp');
 const SvgToPng = require('../modules/SvgToPng');
 const SvgToJpg = require('../modules/SvgToJpg');
 const SvgToJpeg = require('../modules/SvgToJpeg');
-const JpgToBmp = require('../modules/JpgToBmp');
 const BmpToJpg = require('../modules/BmpToJpg');
 const PngToBmp = require('../modules/PngToBmp');
 const BmpToPng = require('../modules/BmpToPng');
@@ -224,16 +223,7 @@ const CONVERSION_MODULES = {
             }
         }
     },
-'jpg-to-bmp': {
-    processor: JpgToBmp.processJpgToBmp,
-    outputFormat: 'bmp',
-    conversionOptions: {
-        bmpOptions: {
-            compressionLevel: 0,
-            quality: 100
-        }
-    }
-},
+
 'bmp-to-jpg': {
     processor: BmpToJpg.processBmpToJpg,
     outputFormat: 'jpg',
