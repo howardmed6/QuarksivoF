@@ -28,6 +28,13 @@ const SvgToWebp = require('../modules/SvgToWebp');
 const SvgToPng = require('../modules/SvgToPng');
 const SvgToJpg = require('../modules/SvgToJpg');
 const SvgToJpeg = require('../modules/SvgToJpeg');
+const JpgToBmp = require('../modules/JpgToBmp');
+const BmpToJpg = require('../modules/BmpToJpg');
+const PngToBmp = require('../modules/PngToBmp');
+const BmpToPng = require('../modules/BmpToPng');
+const GifToWebp = require('../modules/GifToWebp');
+const GifToJpg = require('../modules/GifToJpg');
+const GifToPng = require('../modules/GifToPng');
 /**
  * Configuración centralizada de todas las conversiones
  * @type {Object} - Mapeo de conversiones con sus procesadores y opciones
@@ -217,7 +224,86 @@ const CONVERSION_MODULES = {
             }
         }
     },
-
+'jpg-to-bmp': {
+    processor: JpgToBmp.processJpgToBmp,
+    outputFormat: 'bmp',
+    conversionOptions: {
+        bmpOptions: {
+            compressionLevel: 0,
+            quality: 100
+        }
+    }
+},
+'bmp-to-jpg': {
+    processor: BmpToJpg.processBmpToJpg,
+    outputFormat: 'jpg',
+    conversionOptions: {
+        jpgOptions: {
+            quality: 90,
+            progressive: false,
+            mozjpeg: true,
+            background: { r: 255, g: 255, b: 255 }
+        }
+    }
+},
+'png-to-bmp': {
+    processor: PngToBmp.processPngToBmp,
+    outputFormat: 'bmp',
+    conversionOptions: {
+        bmpOptions: {
+            compressionLevel: 0,
+            quality: 100
+        }
+    }
+},
+'bmp-to-png': {
+    processor: BmpToPng.processBmpToPng,
+    outputFormat: 'png',
+    conversionOptions: {
+        pngOptions: {
+            quality: 90,
+            compressionLevel: 6,
+            progressive: false,
+            palette: false
+        }
+    }
+},
+'gif-to-webp': {
+    processor: GifToWebp.processGifToWebp,
+    outputFormat: 'webp',
+    conversionOptions: {
+        webpOptions: {
+            quality: 80,
+            lossless: false,
+            nearLossless: false,
+            smartSubsample: true
+        }
+    }
+},
+'gif-to-jpg': {
+    processor: GifToJpg.processGifToJpg,
+    outputFormat: 'jpg',
+    conversionOptions: {
+        jpgOptions: {
+            quality: 90,
+            progressive: false,
+            mozjpeg: true,
+            background: { r: 255, g: 255, b: 255 }
+        }
+    }
+},
+'gif-to-png': {
+    processor: GifToPng.processGifToPng,
+    outputFormat: 'png',
+    conversionOptions: {
+        pngOptions: {
+            quality: 90,
+            compressionLevel: 6,
+            progressive: false,
+            palette: false
+        }
+    }
+},
     'svg-to-jpeg': {
         processor: SvgToJpeg.processSvgToJpeg,
         outputFormat: 'jpeg',
@@ -250,6 +336,7 @@ const CONVERSION_MODULES = {
         }
     }
 };
+
 
 /**
  * Obtiene la configuración de conversión para un tipo específico
