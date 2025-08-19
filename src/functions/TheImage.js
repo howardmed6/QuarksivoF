@@ -7,7 +7,7 @@ const { getConversionConfig, isConversionSupported } = require('../utils/moduleL
 
 // RATE LIMITING STORAGE
 const ipLimits = new Map();
-const REQUESTS_PER_DAY = 20;
+const REQUESTS_PER_DAY = 2;
 const DAY_IN_MS = 24 * 60 * 60 * 1000; // 24 horas en milisegundos
 
 /**
