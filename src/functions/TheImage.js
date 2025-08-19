@@ -11,7 +11,7 @@ const { getConversionConfig, isConversionSupported } = require('../utils/moduleL
 app.http('ImageConverterMain', {
     methods: ['POST'],
     authLevel: 'anonymous',
-    route: 'convert/{conversionType}',
+    route: 'image/{conversionType}',
     handler: async (request, context) => {
         const startTime = Date.now();
         const conversionType = request.params.conversionType;

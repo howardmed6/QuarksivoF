@@ -13,7 +13,7 @@ const { getDocumentConversionConfig, isDocumentConversionSupported } = require('
 app.http('DocumentConverterMain', {
     methods: ['POST'],
     authLevel: 'anonymous',
-    route: 'convert/{conversionType}',
+    route: 'document/{conversionType}',
     handler: async (request, context) => {
         const startTime = Date.now();
         const conversionType = request.params.conversionType;
