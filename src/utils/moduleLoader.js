@@ -45,6 +45,17 @@ const BmpToPng = require('../modules/BmpToPng');
 const GifToWebp = require('../modules/GifToWebp');
 const GifToJpg = require('../modules/GifToJpg');
 const GifToPng = require('../modules/GifToPng');
+
+const SvgToPdf = require('../modules/SvgToPdf');
+const IcoToSvg = require('../modules/IcoToSvg');
+const TiffToJpg = require('../modules/TiffToJpg');
+const TiffToPng = require('../modules/TiffToPng');
+const TiffToWebp = require('../modules/TiffToWebp');
+const TiffToAvif = require('../modules/TiffToAvif');
+const JpgToTiff = require('../modules/JpgToTiff');
+const PngToTiff = require('../modules/PngToTiff');
+const WebpToTiff = require('../modules/WebpToTiff');
+const AvifToTiff = require('../modules/AvifToTiff');
 /**
  * Configuración centralizada de todas las conversiones
  * @type {Object} - Mapeo de conversiones con sus procesadores y opciones
@@ -92,7 +103,159 @@ const CONVERSION_MODULES = {
         }
     }
 },
+// SVG a PDF
+'svg-to-pdf': {
+    processor: SvgToPdf.processSvgToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            format: 'A4',
+            printBackground: true,
+            preferCSSPageSize: true,
+            margin: { top: 0, right: 0, bottom: 0, left: 0 },
+            scale: 1
+        }
+    }
+},
 
+// ICO a SVG
+'ico-to-svg': {
+    processor: IcoToSvg.processIcoToSvg,
+    outputFormat: 'svg',
+    conversionOptions: {
+        svgOptions: {
+            embedImage: true,
+            backgroundColor: 'transparent',
+            preserveAspectRatio: 'xMidYMid meet'
+        }
+    }
+},
+
+// TIFF a JPG
+'tiff-to-jpg': {
+    processor: TiffToJpg.processTiffToJpg,
+    outputFormat: 'jpg',
+    conversionOptions: {
+        jpgOptions: {
+            quality: 90,
+            progressive: true,
+            mozjpeg: true,
+            optimizeScans: true,
+            chromaSubsampling: '4:2:0'
+        }
+    }
+},
+
+// TIFF a PNG
+'tiff-to-png': {
+    processor: TiffToPng.processTiffToPng,
+    outputFormat: 'png',
+    conversionOptions: {
+        pngOptions: {
+            compressionLevel: 6,
+            progressive: false,
+            palette: false,
+            adaptiveFiltering: false
+        }
+    }
+},
+
+// TIFF a WebP
+'tiff-to-webp': {
+    processor: TiffToWebp.processTiffToWebp,
+    outputFormat: 'webp',
+    conversionOptions: {
+        webpOptions: {
+            quality: 80,
+            lossless: false,
+            nearLossless: false,
+            smartSubsample: false,
+            effort: 4
+        }
+    }
+},
+
+// TIFF a AVIF
+'tiff-to-avif': {
+    processor: TiffToAvif.processTiffToAvif,
+    outputFormat: 'avif',
+    conversionOptions: {
+        avifOptions: {
+            quality: 50,
+            lossless: false,
+            effort: 4,
+            chromaSubsampling: '4:4:4'
+        }
+    }
+},
+
+// JPG a TIFF
+'jpg-to-tiff': {
+    processor: JpgToTiff.processJpgToTiff,
+    outputFormat: 'tiff',
+    conversionOptions: {
+        tiffOptions: {
+            compression: 'lzw',
+            quality: 80,
+            predictor: 'horizontal',
+            pyramid: false,
+            tile: false,
+            tileWidth: 256,
+            tileHeight: 256
+        }
+    }
+},
+
+// PNG a TIFF
+'png-to-tiff': {
+    processor: PngToTiff.processPngToTiff,
+    outputFormat: 'tiff',
+    conversionOptions: {
+        tiffOptions: {
+            compression: 'lzw',
+            quality: 80,
+            predictor: 'horizontal',
+            pyramid: false,
+            tile: false,
+            tileWidth: 256,
+            tileHeight: 256
+        }
+    }
+},
+
+// WebP a TIFF
+'webp-to-tiff': {
+    processor: WebpToTiff.processWebpToTiff,
+    outputFormat: 'tiff',
+    conversionOptions: {
+        tiffOptions: {
+            compression: 'lzw',
+            quality: 80,
+            predictor: 'horizontal',
+            pyramid: false,
+            tile: false,
+            tileWidth: 256,
+            tileHeight: 256
+        }
+    }
+},
+
+// AVIF a TIFF
+'avif-to-tiff': {
+    processor: AvifToTiff.processAvifToTiff,
+    outputFormat: 'tiff',
+    conversionOptions: {
+        tiffOptions: {
+            compression: 'lzw',
+            quality: 80,
+            predictor: 'horizontal',
+            pyramid: false,
+            tile: false,
+            tileWidth: 256,
+            tileHeight: 256
+        }
+    }
+},
 'png-to-pdf': {
     processor: ImagesToPdf.processPngToPdf,
     outputFormat: 'pdf',
