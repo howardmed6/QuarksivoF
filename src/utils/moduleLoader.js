@@ -32,7 +32,7 @@ const AvifToHeic = require('../modules/AvifToHeic');
 const HeicToJpg = require('../modules/HeicToJpg');
 const HeicToPng = require('../modules/HeicToPng');
 const GifToMp4 = require('../modules/GifToMp4');
-
+const ImagesToPdf = require('../modules/ImagesToPdf');
 
 const SvgToWebp = require('../modules/SvgToWebp');
 const SvgToPng = require('../modules/SvgToPng');
@@ -77,7 +77,117 @@ const CONVERSION_MODULES = {
         }
     }
 },
+'jpg-to-pdf': {
+    processor: ImagesToPdf.processJpgToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            pageSize: 'A4',
+            orientation: 'portrait',
+            margin: 50,
+            fitToPage: true,
+            quality: 90,
+            title: 'Converted from JPG',
+            author: 'Image to PDF Converter'
+        }
+    }
+},
 
+'png-to-pdf': {
+    processor: ImagesToPdf.processPngToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            pageSize: 'A4',
+            orientation: 'portrait',
+            margin: 50,
+            fitToPage: true,
+            quality: 90,
+            title: 'Converted from PNG',
+            author: 'Image to PDF Converter'
+        }
+    }
+},
+
+'avif-to-pdf': {
+    processor: ImagesToPdf.processAvifToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            pageSize: 'A4',
+            orientation: 'portrait',
+            margin: 50,
+            fitToPage: true,
+            quality: 90,
+            title: 'Converted from AVIF',
+            author: 'Image to PDF Converter'
+        }
+    }
+},
+
+'bmp-to-pdf': {
+    processor: ImagesToPdf.processBmpToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            pageSize: 'A4',
+            orientation: 'portrait',
+            margin: 50,
+            fitToPage: true,
+            quality: 90,
+            title: 'Converted from BMP',
+            author: 'Image to PDF Converter'
+        }
+    }
+},
+
+'webp-to-pdf': {
+    processor: ImagesToPdf.processWebpToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            pageSize: 'A4',
+            orientation: 'portrait',
+            margin: 50,
+            fitToPage: true,
+            quality: 90,
+            title: 'Converted from WebP',
+            author: 'Image to PDF Converter'
+        }
+    }
+},
+
+'heic-to-pdf': {
+    processor: ImagesToPdf.processHeicToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            pageSize: 'A4',
+            orientation: 'portrait',
+            margin: 50,
+            fitToPage: true,
+            quality: 90,
+            title: 'Converted from HEIC',
+            author: 'Image to PDF Converter'
+        }
+    }
+},
+
+'tiff-to-pdf': {
+    processor: ImagesToPdf.processTiffToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            pageSize: 'A4',
+            orientation: 'portrait',
+            margin: 50,
+            fitToPage: true,
+            quality: 90,
+            title: 'Converted from TIFF',
+            author: 'Image to PDF Converter'
+        }
+    }
+},
 'avif-to-webp': {
     processor: AvifToWebp.processAvifToWebp,
     outputFormat: 'webp',
