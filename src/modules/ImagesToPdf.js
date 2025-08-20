@@ -3,12 +3,46 @@ const PDFDocument = require('pdfkit');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
 /**
- * Valida que el buffer sea una imagen válida según el tipo esperado
+ * Valida que el buffer sea una imagen válida usando Sharp
  * @param {Buffer} imageBuffer - Buffer a validar
  * @param {string} expectedFormat - Formato esperado ('jpg', 'png', 'avif', 'bmp', 'webp', 'heic', 'tiff')
+ * @returns {Promise<boolean>} - true si es válido
+ */
+const validateImageFormat = async (imageBuffer, expectedFormat) => {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
+        return false;
+    }
+
+    try {
+        // Usar Sharp para obtener metadata real del archivo
+        const metadata = await sharp(imageBuffer).metadata();
+        
+        // Normalizar formatos para comparación
+        const normalizeFormat = (format) => {
+            const normalized = format.toLowerCase();
+            if (normalized === 'jpeg') return 'jpg';
+            if (normalized === 'tif') return 'tiff';
+            if (normalized === 'heif') return 'heic';
+            return normalized;
+        };
+
+        const detectedFormat = normalizeFormat(metadata.format);
+        const expectedNormalized = normalizeFormat(expectedFormat);
+
+        return detectedFormat === expectedNormalized;
+    } catch (error) {
+        // Si Sharp no puede leer la imagen, intentar validación manual como fallback
+        return validateImageFormatManual(imageBuffer, expectedFormat);
+    }
+};
+
+/**
+ * Validación manual como fallback (mejorada)
+ * @param {Buffer} imageBuffer - Buffer a validar
+ * @param {string} expectedFormat - Formato esperado
  * @returns {boolean} - true si es válido
  */
-const validateImageFormat = (imageBuffer, expectedFormat) => {
+const validateImageFormatManual = (imageBuffer, expectedFormat) => {
     if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
         return false;
     }
@@ -19,27 +53,51 @@ const validateImageFormat = (imageBuffer, expectedFormat) => {
             return imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8 && imageBuffer[2] === 0xFF;
         
         case 'png':
-            return imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50 && imageBuffer[2] === 0x4E && imageBuffer[3] === 0x47;
+            return imageBuffer[0] === 0x89 && imageBuffer[1] === 0x50 && 
+                   imageBuffer[2] === 0x4E && imageBuffer[3] === 0x47 &&
+                   imageBuffer[4] === 0x0D && imageBuffer[5] === 0x0A &&
+                   imageBuffer[6] === 0x1A && imageBuffer[7] === 0x0A;
         
         case 'avif':
-            const avifHeader = imageBuffer.toString('ascii', 4, 12);
-            return avifHeader === 'ftypavif' || avifHeader.startsWith('ftyp') && imageBuffer.includes(Buffer.from('avif', 'ascii'));
+            // Verificar si es un container ISO/MP4 con brand AVIF
+            if (imageBuffer.length < 20) return false;
+            const boxType = imageBuffer.toString('ascii', 4, 8);
+            if (boxType !== 'ftyp') return false;
+            const brand = imageBuffer.toString('ascii', 8, 12);
+            return brand === 'avif' || brand === 'avis';
         
         case 'webp':
-            return imageBuffer.toString('ascii', 0, 4) === 'RIFF' && imageBuffer.toString('ascii', 8, 12) === 'WEBP';
+            return imageBuffer.length >= 12 &&
+                   imageBuffer.toString('ascii', 0, 4) === 'RIFF' && 
+                   imageBuffer.toString('ascii', 8, 12) === 'WEBP';
         
         case 'heic':
         case 'heif':
-            const heicHeader = imageBuffer.toString('ascii', 4, 12);
-            return heicHeader.includes('ftyp') && (heicHeader.includes('heic') || heicHeader.includes('mif1'));
+            // Mejorar detección HEIC/HEIF
+            if (imageBuffer.length < 20) return false;
+            const heicBoxType = imageBuffer.toString('ascii', 4, 8);
+            if (heicBoxType !== 'ftyp') return false;
+            const heicBrand = imageBuffer.toString('ascii', 8, 12);
+            return heicBrand === 'heic' || heicBrand === 'heix' || 
+                   heicBrand === 'hevc' || heicBrand === 'hevx' ||
+                   heicBrand === 'heim' || heicBrand === 'heis' ||
+                   heicBrand === 'mif1' || heicBrand === 'msf1';
         
         case 'bmp':
-            return imageBuffer[0] === 0x42 && imageBuffer[1] === 0x4D;
+            // Validación BMP más completa
+            return imageBuffer.length >= 14 &&
+                   imageBuffer[0] === 0x42 && imageBuffer[1] === 0x4D && // 'BM'
+                   imageBuffer.readUInt32LE(2) === imageBuffer.length; // File size check
         
         case 'tiff':
         case 'tif':
-            return (imageBuffer[0] === 0x49 && imageBuffer[1] === 0x49 && imageBuffer[2] === 0x2A && imageBuffer[3] === 0x00) ||
-                   (imageBuffer[0] === 0x4D && imageBuffer[1] === 0x4D && imageBuffer[2] === 0x00 && imageBuffer[3] === 0x2A);
+            // Little endian TIFF
+            const isLittleEndian = imageBuffer[0] === 0x49 && imageBuffer[1] === 0x49 && 
+                                   imageBuffer[2] === 0x2A && imageBuffer[3] === 0x00;
+            // Big endian TIFF
+            const isBigEndian = imageBuffer[0] === 0x4D && imageBuffer[1] === 0x4D && 
+                                imageBuffer[2] === 0x00 && imageBuffer[3] === 0x2A;
+            return isLittleEndian || isBigEndian;
         
         default:
             return false;
@@ -65,8 +123,19 @@ const convertImageToPdf = async (imageBuffer, sourceFormat, options = {}) => {
     } = options;
 
     try {
-        // Obtener metadata de la imagen
+        // Obtener metadata de la imagen usando Sharp
         const metadata = await sharp(imageBuffer).metadata();
+        
+        // Para algunos formatos, convertir primero a un formato compatible con PDFKit
+        let processedBuffer = imageBuffer;
+        const incompatibleFormats = ['avif', 'heic', 'heif', 'tiff', 'tif'];
+        
+        if (incompatibleFormats.includes(sourceFormat.toLowerCase())) {
+            console.log(`🔄 Convirtiendo ${sourceFormat.toUpperCase()} a PNG para compatibilidad con PDF...`);
+            processedBuffer = await sharp(imageBuffer)
+                .png({ quality: 100, compressionLevel: 0 })
+                .toBuffer();
+        }
         
         // Crear documento PDF
         const doc = new PDFDocument({
@@ -121,7 +190,7 @@ const convertImageToPdf = async (imageBuffer, sourceFormat, options = {}) => {
                 const y = (doc.page.height - imageHeight) / 2;
 
                 // Insertar imagen en el PDF
-                doc.image(imageBuffer, x, y, {
+                doc.image(processedBuffer, x, y, {
                     width: imageWidth,
                     height: imageHeight
                 });
@@ -149,7 +218,9 @@ const convertImageToPdf = async (imageBuffer, sourceFormat, options = {}) => {
  */
 const processImageToPdf = async (imageBuffer, sourceFormat, processingOptions = [], conversionParams = {}) => {
     try {
-        if (!validateImageFormat(imageBuffer, sourceFormat)) {
+        // Usar validación mejorada
+        const isValid = await validateImageFormat(imageBuffer, sourceFormat);
+        if (!isValid) {
             throw new Error(`El archivo no es una imagen ${sourceFormat.toUpperCase()} válida`);
         }
 
@@ -245,6 +316,7 @@ module.exports = {
     processImageToPdf,
     convertImageToPdf,
     validateImageFormat,
+    validateImageFormatManual,
     
     // Funciones específicas por formato
     processJpgToPdf,
