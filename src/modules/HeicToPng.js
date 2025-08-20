@@ -1,39 +1,5 @@
-// ========== HEIC to PNG ==========
 const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
-
-/**
- * Convierte imagen HEIC a PNG
- * @param {Buffer} imageBuffer - Buffer de imagen HEIC
- * @param {Object} options - Opciones de conversión PNG
- * @returns {Promise<Buffer>} - Buffer de imagen PNG
- */
-const convertHeicToPng = async (imageBuffer, options = {}) => {
-    const {
-        quality = 90,
-        compressionLevel = 6,
-        progressive = false,
-        palette = false
-    } = options;
-
-    try {
-        let pipeline = sharp(imageBuffer);
-
-        // HEIC puede tener transparencia, mantenerla en PNG
-        pipeline = pipeline.png({
-            quality: quality,
-            compressionLevel: compressionLevel,
-            progressive: progressive,
-            palette: palette
-        });
-
-        const pngBuffer = await pipeline.toBuffer();
-        return pngBuffer;
-        
-    } catch (error) {
-        throw new Error(`Error convirtiendo HEIC a PNG: ${error.message}`);
-    }
-};
 
 /**
  * Valida que el buffer sea una imagen HEIC válida
@@ -45,20 +11,59 @@ const validateHeicImage = (imageBuffer) => {
         return false;
     }
     
-    // Verificar HEIC magic bytes
-    // HEIC files start with specific patterns
-    const header = imageBuffer.slice(0, 12);
+    // Verificar magic bytes de HEIC/HEIF
+    const heicSignature = imageBuffer.toString('ascii', 4, 8);
+    const brandSignature = imageBuffer.toString('ascii', 8, 12);
     
-    // Verificar si es un archivo ISO base media (ftyp box)
-    if (header.slice(4, 8).toString('ascii') === 'ftyp') {
-        const brand = header.slice(8, 12).toString('ascii');
-        // Verificar marcas HEIC conocidas
-        return brand === 'heic' || brand === 'heix' || brand === 'hevc' || 
-               brand === 'hevx' || brand === 'heim' || brand === 'hems' ||
-               brand === 'mif1' || brand === 'msf1';
+    return heicSignature === 'ftyp' && 
+           (brandSignature === 'heic' || 
+            brandSignature === 'heix' || 
+            brandSignature === 'hevc' || 
+            brandSignature === 'hevx');
+};
+
+/**
+ * Convierte imagen HEIC a PNG
+ * @param {Buffer} imageBuffer - Buffer de imagen HEIC
+ * @param {Object} options - Opciones de conversión PNG
+ * @returns {Promise<Buffer>} - Buffer de imagen PNG
+ */
+const convertHeicToPng = async (imageBuffer, options = {}) => {
+    const {
+        compressionLevel = 6,
+        adaptiveFiltering = false,
+        palette = false,
+        quality = 100,
+        effort = 7,
+        colors = 256,
+        dither = 1.0
+    } = options;
+
+    try {
+        let pipeline = sharp(imageBuffer);
+
+        const pngOptions = {
+            compressionLevel: compressionLevel,
+            adaptiveFiltering: adaptiveFiltering,
+            quality: quality,
+            effort: effort
+        };
+
+        // Agregar opciones de paleta solo si está habilitada
+        if (palette) {
+            pngOptions.palette = true;
+            pngOptions.colors = colors;
+            pngOptions.dither = dither;
+        }
+
+        pipeline = pipeline.png(pngOptions);
+
+        const pngBuffer = await pipeline.toBuffer();
+        return pngBuffer;
+        
+    } catch (error) {
+        throw new Error(`Error convirtiendo HEIC a PNG: ${error.message}`);
     }
-    
-    return false;
 };
 
 /**
@@ -77,7 +82,7 @@ const processHeicToPng = async (imageBuffer, processingOptions = [], conversionP
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
-        console.log(`📥 Procesando HEIC: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando HEIC a PNG: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
         let processedBuffer = imageBuffer;
         
@@ -94,7 +99,7 @@ const processHeicToPng = async (imageBuffer, processingOptions = [], conversionP
             }
         }
 
-        console.log('🔄 Convirtiendo a formato PNG...');
+        console.log('🔄 Convirtiendo HEIC a PNG...');
         const pngBuffer = await convertHeicToPng(processedBuffer, conversionParams.pngOptions);
 
         const finalMetadata = await sharp(pngBuffer).metadata();
@@ -105,6 +110,7 @@ const processHeicToPng = async (imageBuffer, processingOptions = [], conversionP
         return {
             success: true,
             buffer: pngBuffer,
+            format: 'png',
             metadata: {
                 original: {
                     format: originalMetadata.format,

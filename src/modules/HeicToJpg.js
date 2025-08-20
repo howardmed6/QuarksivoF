@@ -2,6 +2,27 @@ const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
 /**
+ * Valida que el buffer sea una imagen HEIC válida
+ * @param {Buffer} imageBuffer - Buffer a validar
+ * @returns {boolean} - true si es HEIC válido
+ */
+const validateHeicImage = (imageBuffer) => {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
+        return false;
+    }
+    
+    // Verificar magic bytes de HEIC/HEIF
+    const heicSignature = imageBuffer.toString('ascii', 4, 8);
+    const brandSignature = imageBuffer.toString('ascii', 8, 12);
+    
+    return heicSignature === 'ftyp' && 
+           (brandSignature === 'heic' || 
+            brandSignature === 'heix' || 
+            brandSignature === 'hevc' || 
+            brandSignature === 'hevx');
+};
+
+/**
  * Convierte imagen HEIC a JPG
  * @param {Buffer} imageBuffer - Buffer de imagen HEIC
  * @param {Object} options - Opciones de conversión JPG
@@ -40,27 +61,6 @@ const convertHeicToJpg = async (imageBuffer, options = {}) => {
 };
 
 /**
- * Valida que el buffer sea una imagen HEIC válida
- * @param {Buffer} imageBuffer - Buffer a validar
- * @returns {boolean} - true si es HEIC válido
- */
-const validateHeicImage = (imageBuffer) => {
-    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
-        return false;
-    }
-    
-    // Verificar magic bytes de HEIC/HEIF
-    const heicSignature = imageBuffer.toString('ascii', 4, 8);
-    const brandSignature = imageBuffer.toString('ascii', 8, 12);
-    
-    return heicSignature === 'ftyp' && 
-           (brandSignature === 'heic' || 
-            brandSignature === 'heix' || 
-            brandSignature === 'hevc' || 
-            brandSignature === 'hevx');
-};
-
-/**
  * Procesa conversión completa de HEIC a JPG
  * @param {Buffer} imageBuffer - Buffer de imagen HEIC
  * @param {Array} processingOptions - Opciones de procesamiento
@@ -76,7 +76,7 @@ const processHeicToJpg = async (imageBuffer, processingOptions = [], conversionP
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
-        console.log(`📥 Procesando HEIC: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando HEIC a JPG: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
         let processedBuffer = imageBuffer;
         
@@ -93,7 +93,7 @@ const processHeicToJpg = async (imageBuffer, processingOptions = [], conversionP
             }
         }
 
-        console.log('🔄 Convirtiendo a formato JPG...');
+        console.log('🔄 Convirtiendo HEIC a JPG...');
         const jpgBuffer = await convertHeicToJpg(processedBuffer, conversionParams.jpgOptions);
 
         const finalMetadata = await sharp(jpgBuffer).metadata();
@@ -104,6 +104,7 @@ const processHeicToJpg = async (imageBuffer, processingOptions = [], conversionP
         return {
             success: true,
             buffer: jpgBuffer,
+            format: 'jpeg',
             metadata: {
                 original: {
                     format: originalMetadata.format,

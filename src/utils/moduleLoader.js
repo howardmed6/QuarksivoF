@@ -93,7 +93,7 @@ const CONVERSION_MODULES = {
 },
 'jpg-to-heic': {
    processor: JpgToHeic.processJpgToHeic,
-   outputFormat: 'heif',
+   outputFormat: 'heic',
    conversionOptions: {
        heicOptions: {
            quality: 50,
@@ -104,7 +104,7 @@ const CONVERSION_MODULES = {
 },
 'png-to-heic': {
    processor: PngToHeic.processPngToHeic,
-   outputFormat: 'heif',
+   outputFormat: 'heic',
    conversionOptions: {
        heicOptions: {
            quality: 50,
@@ -115,7 +115,7 @@ const CONVERSION_MODULES = {
 },
 'webp-to-heic': {
    processor: WebpToHeic.processWebpToHeic,
-   outputFormat: 'heif',
+   outputFormat: 'heic',
    conversionOptions: {
        heicOptions: {
            quality: 50,
@@ -126,7 +126,7 @@ const CONVERSION_MODULES = {
 },
 'avif-to-heic': {
    processor: AvifToHeic.processAvifToHeic,
-   outputFormat: 'heif',
+   outputFormat: 'heic',
    conversionOptions: {
        heicOptions: {
            quality: 50,
