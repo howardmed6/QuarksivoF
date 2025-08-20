@@ -12,57 +12,62 @@ const validateAvifImage = (imageBuffer) => {
     }
     
     // Verificar magic bytes de AVIF
-    // AVIF files start with 'ftypavif' at offset 4
     const header = imageBuffer.toString('ascii', 4, 12);
     return header === 'ftypavif' || header.startsWith('ftyp') && imageBuffer.includes(Buffer.from('avif', 'ascii'));
 };
 
 /**
- * Convierte imagen AVIF a HEIC
+ * Convierte imagen AVIF a WebP
  * @param {Buffer} imageBuffer - Buffer de imagen AVIF
- * @param {Object} options - Opciones de conversión HEIC
- * @returns {Promise<Buffer>} - Buffer de imagen HEIC
+ * @param {Object} options - Opciones de conversión WebP
+ * @returns {Promise<Buffer>} - Buffer de imagen WebP
  */
-const convertAvifToHeic = async (imageBuffer, options = {}) => {
+const convertAvifToWebp = async (imageBuffer, options = {}) => {
     const {
-        quality = 50,
-        compression = 'av1',
+        quality = 80,
+        alphaQuality = 100,
+        lossless = false,
+        nearLossless = false,
+        smartSubsample = false,
         effort = 4,
-        chromaSubsampling = '4:2:0',
-        bitdepth = 8,
-        lossless = false
+        loop = 0,
+        delay = 100,
+        force = true
     } = options;
 
     try {
         let pipeline = sharp(imageBuffer);
 
-        const heicOptions = {
+        const webpOptions = {
             quality: quality,
-            compression: compression,
+            alphaQuality: alphaQuality,
+            lossless: lossless,
+            nearLossless: nearLossless,
+            smartSubsample: smartSubsample,
             effort: effort,
-            chromaSubsampling: chromaSubsampling,
-            bitdepth: bitdepth,
-            lossless: lossless
+            loop: loop,
+            delay: delay,
+            force: force
         };
 
-        pipeline = pipeline.heif(heicOptions);
+        pipeline = pipeline.webp(webpOptions);
 
-        const heicBuffer = await pipeline.toBuffer();
-        return heicBuffer;
+        const webpBuffer = await pipeline.toBuffer();
+        return webpBuffer;
         
     } catch (error) {
-        throw new Error(`Error convirtiendo AVIF a HEIC: ${error.message}`);
+        throw new Error(`Error convirtiendo AVIF a WebP: ${error.message}`);
     }
 };
 
 /**
- * Procesa conversión completa de AVIF a HEIC
+ * Procesa conversión completa de AVIF a WebP
  * @param {Buffer} imageBuffer - Buffer de imagen AVIF
  * @param {Array} processingOptions - Opciones de procesamiento
  * @param {Object} conversionParams - Parámetros específicos de conversión
- * @returns {Promise<Object>} - Resultado con buffer HEIC y metadata
+ * @returns {Promise<Object>} - Resultado con buffer WebP y metadata
  */
-const processAvifToHeic = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
+const processAvifToWebp = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
         if (!validateAvifImage(imageBuffer)) {
             throw new Error('El archivo no es una imagen AVIF válida');
@@ -71,7 +76,7 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
-        console.log(`📥 Procesando AVIF a HEIC: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando AVIF a WebP: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
         let processedBuffer = imageBuffer;
         
@@ -88,18 +93,18 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
             }
         }
 
-        console.log('🔄 Convirtiendo AVIF a HEIC...');
-        const heicBuffer = await convertAvifToHeic(processedBuffer, conversionParams.heicOptions);
+        console.log('🔄 Convirtiendo AVIF a WebP...');
+        const webpBuffer = await convertAvifToWebp(processedBuffer, conversionParams.webpOptions);
 
-        const finalMetadata = await sharp(heicBuffer).metadata();
-        const finalSize = heicBuffer.length;
+        const finalMetadata = await sharp(webpBuffer).metadata();
+        const finalSize = webpBuffer.length;
 
-        console.log(`📤 HEIC generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📤 WebP generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
 
         return {
             success: true,
-            buffer: heicBuffer,
-            format: 'heif',
+            buffer: webpBuffer,
+            format: 'webp',
             metadata: {
                 original: {
                     format: originalMetadata.format,
@@ -127,12 +132,12 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
         };
 
     } catch (error) {
-        throw new Error(`Error en proceso AVIF->HEIC: ${error.message}`);
+        throw new Error(`Error en proceso AVIF->WebP: ${error.message}`);
     }
 };
 
 module.exports = {
-    convertAvifToHeic,
+    convertAvifToWebp,
     validateAvifImage,
-    processAvifToHeic
+    processAvifToWebp
 };

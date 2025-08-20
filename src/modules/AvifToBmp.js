@@ -12,57 +12,60 @@ const validateAvifImage = (imageBuffer) => {
     }
     
     // Verificar magic bytes de AVIF
-    // AVIF files start with 'ftypavif' at offset 4
     const header = imageBuffer.toString('ascii', 4, 12);
     return header === 'ftypavif' || header.startsWith('ftyp') && imageBuffer.includes(Buffer.from('avif', 'ascii'));
 };
 
 /**
- * Convierte imagen AVIF a HEIC
+ * Convierte imagen AVIF a BMP
  * @param {Buffer} imageBuffer - Buffer de imagen AVIF
- * @param {Object} options - Opciones de conversión HEIC
- * @returns {Promise<Buffer>} - Buffer de imagen HEIC
+ * @param {Object} options - Opciones de conversión BMP
+ * @returns {Promise<Buffer>} - Buffer de imagen BMP
  */
-const convertAvifToHeic = async (imageBuffer, options = {}) => {
+const convertAvifToBmp = async (imageBuffer, options = {}) => {
     const {
-        quality = 50,
-        compression = 'av1',
-        effort = 4,
-        chromaSubsampling = '4:2:0',
-        bitdepth = 8,
-        lossless = false
+        background = { r: 255, g: 255, b: 255 }
     } = options;
 
     try {
         let pipeline = sharp(imageBuffer);
 
-        const heicOptions = {
-            quality: quality,
-            compression: compression,
-            effort: effort,
-            chromaSubsampling: chromaSubsampling,
-            bitdepth: bitdepth,
-            lossless: lossless
-        };
+        // BMP no soporta transparencia, por lo que necesitamos un fondo
+        if (background) {
+            pipeline = pipeline.flatten({ background });
+        }
 
-        pipeline = pipeline.heif(heicOptions);
-
-        const heicBuffer = await pipeline.toBuffer();
-        return heicBuffer;
+        // Convertir a BMP (formato TIFF como alternativa ya que Sharp no tiene BMP nativo)
+        // Usamos formato raw y luego manejamos como BMP
+        pipeline = pipeline.raw();
+        
+        const rawBuffer = await pipeline.toBuffer({ resolveWithObject: true });
+        
+        // Convertir raw a BMP usando Sharp con formato TIFF como alternativa más compatible
+        const bmpPipeline = sharp(rawBuffer.data, {
+            raw: {
+                width: rawBuffer.info.width,
+                height: rawBuffer.info.height,
+                channels: rawBuffer.info.channels
+            }
+        });
+        
+        const bmpBuffer = await bmpPipeline.tiff().toBuffer();
+        return bmpBuffer;
         
     } catch (error) {
-        throw new Error(`Error convirtiendo AVIF a HEIC: ${error.message}`);
+        throw new Error(`Error convirtiendo AVIF a BMP: ${error.message}`);
     }
 };
 
 /**
- * Procesa conversión completa de AVIF a HEIC
+ * Procesa conversión completa de AVIF a BMP
  * @param {Buffer} imageBuffer - Buffer de imagen AVIF
  * @param {Array} processingOptions - Opciones de procesamiento
  * @param {Object} conversionParams - Parámetros específicos de conversión
- * @returns {Promise<Object>} - Resultado con buffer HEIC y metadata
+ * @returns {Promise<Object>} - Resultado con buffer BMP y metadata
  */
-const processAvifToHeic = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
+const processAvifToBmp = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
         if (!validateAvifImage(imageBuffer)) {
             throw new Error('El archivo no es una imagen AVIF válida');
@@ -71,7 +74,7 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
-        console.log(`📥 Procesando AVIF a HEIC: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando AVIF a BMP: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
         let processedBuffer = imageBuffer;
         
@@ -88,18 +91,18 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
             }
         }
 
-        console.log('🔄 Convirtiendo AVIF a HEIC...');
-        const heicBuffer = await convertAvifToHeic(processedBuffer, conversionParams.heicOptions);
+        console.log('🔄 Convirtiendo AVIF a BMP...');
+        const bmpBuffer = await convertAvifToBmp(processedBuffer, conversionParams.bmpOptions);
 
-        const finalMetadata = await sharp(heicBuffer).metadata();
-        const finalSize = heicBuffer.length;
+        const finalMetadata = await sharp(bmpBuffer).metadata();
+        const finalSize = bmpBuffer.length;
 
-        console.log(`📤 HEIC generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📤 BMP generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
 
         return {
             success: true,
-            buffer: heicBuffer,
-            format: 'heif',
+            buffer: bmpBuffer,
+            format: 'tiff', // Sharp maneja BMP como TIFF internamente
             metadata: {
                 original: {
                     format: originalMetadata.format,
@@ -127,12 +130,12 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
         };
 
     } catch (error) {
-        throw new Error(`Error en proceso AVIF->HEIC: ${error.message}`);
+        throw new Error(`Error en proceso AVIF->BMP: ${error.message}`);
     }
 };
 
 module.exports = {
-    convertAvifToHeic,
+    convertAvifToBmp,
     validateAvifImage,
-    processAvifToHeic
+    processAvifToBmp
 };

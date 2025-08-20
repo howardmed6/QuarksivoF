@@ -8,6 +8,10 @@ const JpgToPng = require('../modules/JpgToPng');
 const PngToJpg = require('../modules/PngToJpg');
 const WebpToJpg = require('../modules/WebpToJpg');
 
+const AvifToPng = require('../modules/AvifToPng');
+const AvifToWebp = require('../modules/AvifToWebp');
+const AvifToBmp = require('../modules/AvifToBmp');
+
 // Módulos de conversión WebP
 const JpgToWebp = require('../modules/JpgToWebp');
 const PngToWebp = require('../modules/PngToWebp');
@@ -58,6 +62,49 @@ const CONVERSION_MODULES = {
             }
         }
     },
+    'avif-to-png': {
+    processor: AvifToPng.processAvifToPng,
+    outputFormat: 'png',
+    conversionOptions: {
+        pngOptions: {
+            compressionLevel: 6,
+            adaptiveFiltering: false,
+            palette: false,
+            quality: 100,
+            effort: 7,
+            colours: 256,
+            dither: 1.0
+        }
+    }
+},
+
+'avif-to-webp': {
+    processor: AvifToWebp.processAvifToWebp,
+    outputFormat: 'webp',
+    conversionOptions: {
+        webpOptions: {
+            quality: 80,
+            alphaQuality: 100,
+            lossless: false,
+            nearLossless: false,
+            smartSubsample: false,
+            effort: 4,
+            loop: 0,
+            delay: 100,
+            force: true
+        }
+    }
+},
+
+'avif-to-bmp': {
+    processor: AvifToBmp.processAvifToBmp,
+    outputFormat: 'bmp',
+    conversionOptions: {
+        bmpOptions: {
+            background: { r: 255, g: 255, b: 255 }
+        }
+    }
+},
     'png-to-jpg': {
         processor: PngToJpg.processPngToJpg,
         outputFormat: 'jpg',

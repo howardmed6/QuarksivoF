@@ -12,57 +12,58 @@ const validateAvifImage = (imageBuffer) => {
     }
     
     // Verificar magic bytes de AVIF
-    // AVIF files start with 'ftypavif' at offset 4
     const header = imageBuffer.toString('ascii', 4, 12);
     return header === 'ftypavif' || header.startsWith('ftyp') && imageBuffer.includes(Buffer.from('avif', 'ascii'));
 };
 
 /**
- * Convierte imagen AVIF a HEIC
+ * Convierte imagen AVIF a PNG
  * @param {Buffer} imageBuffer - Buffer de imagen AVIF
- * @param {Object} options - Opciones de conversión HEIC
- * @returns {Promise<Buffer>} - Buffer de imagen HEIC
+ * @param {Object} options - Opciones de conversión PNG
+ * @returns {Promise<Buffer>} - Buffer de imagen PNG
  */
-const convertAvifToHeic = async (imageBuffer, options = {}) => {
+const convertAvifToPng = async (imageBuffer, options = {}) => {
     const {
-        quality = 50,
-        compression = 'av1',
-        effort = 4,
-        chromaSubsampling = '4:2:0',
-        bitdepth = 8,
-        lossless = false
+        compressionLevel = 6,
+        adaptiveFiltering = false,
+        palette = false,
+        quality = 100,
+        effort = 7,
+        colours = 256,
+        dither = 1.0
     } = options;
 
     try {
         let pipeline = sharp(imageBuffer);
 
-        const heicOptions = {
+        const pngOptions = {
+            compressionLevel: compressionLevel,
+            adaptiveFiltering: adaptiveFiltering,
+            palette: palette,
             quality: quality,
-            compression: compression,
             effort: effort,
-            chromaSubsampling: chromaSubsampling,
-            bitdepth: bitdepth,
-            lossless: lossless
+            colours: colours,
+            dither: dither
         };
 
-        pipeline = pipeline.heif(heicOptions);
+        pipeline = pipeline.png(pngOptions);
 
-        const heicBuffer = await pipeline.toBuffer();
-        return heicBuffer;
+        const pngBuffer = await pipeline.toBuffer();
+        return pngBuffer;
         
     } catch (error) {
-        throw new Error(`Error convirtiendo AVIF a HEIC: ${error.message}`);
+        throw new Error(`Error convirtiendo AVIF a PNG: ${error.message}`);
     }
 };
 
 /**
- * Procesa conversión completa de AVIF a HEIC
+ * Procesa conversión completa de AVIF a PNG
  * @param {Buffer} imageBuffer - Buffer de imagen AVIF
  * @param {Array} processingOptions - Opciones de procesamiento
  * @param {Object} conversionParams - Parámetros específicos de conversión
- * @returns {Promise<Object>} - Resultado con buffer HEIC y metadata
+ * @returns {Promise<Object>} - Resultado con buffer PNG y metadata
  */
-const processAvifToHeic = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
+const processAvifToPng = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
         if (!validateAvifImage(imageBuffer)) {
             throw new Error('El archivo no es una imagen AVIF válida');
@@ -71,7 +72,7 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
-        console.log(`📥 Procesando AVIF a HEIC: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando AVIF a PNG: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
         let processedBuffer = imageBuffer;
         
@@ -88,18 +89,18 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
             }
         }
 
-        console.log('🔄 Convirtiendo AVIF a HEIC...');
-        const heicBuffer = await convertAvifToHeic(processedBuffer, conversionParams.heicOptions);
+        console.log('🔄 Convirtiendo AVIF a PNG...');
+        const pngBuffer = await convertAvifToPng(processedBuffer, conversionParams.pngOptions);
 
-        const finalMetadata = await sharp(heicBuffer).metadata();
-        const finalSize = heicBuffer.length;
+        const finalMetadata = await sharp(pngBuffer).metadata();
+        const finalSize = pngBuffer.length;
 
-        console.log(`📤 HEIC generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📤 PNG generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
 
         return {
             success: true,
-            buffer: heicBuffer,
-            format: 'heif',
+            buffer: pngBuffer,
+            format: 'png',
             metadata: {
                 original: {
                     format: originalMetadata.format,
@@ -127,12 +128,12 @@ const processAvifToHeic = async (imageBuffer, processingOptions = [], conversion
         };
 
     } catch (error) {
-        throw new Error(`Error en proceso AVIF->HEIC: ${error.message}`);
+        throw new Error(`Error en proceso AVIF->PNG: ${error.message}`);
     }
 };
 
 module.exports = {
-    convertAvifToHeic,
+    convertAvifToPng,
     validateAvifImage,
-    processAvifToHeic
+    processAvifToPng
 };
