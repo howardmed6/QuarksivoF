@@ -2,13 +2,48 @@ const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
 /**
+ * Convierte imagen HEIC a JPG
+ * @param {Buffer} imageBuffer - Buffer de imagen HEIC
+ * @param {Object} options - Opciones de conversión JPG
+ * @returns {Promise<Buffer>} - Buffer de imagen JPG
+ */
+const convertHeicToJpg = async (imageBuffer, options = {}) => {
+    const {
+        quality = 90,
+        progressive = false,
+        mozjpeg = true,
+        background = { r: 255, g: 255, b: 255 }
+    } = options;
+
+    try {
+        let pipeline = sharp(imageBuffer);
+
+        // HEIC puede tener transparencia, JPG no - agregar fondo
+        pipeline = pipeline.flatten({ background });
+
+        const jpgOptions = {
+            quality: quality,
+            progressive: progressive,
+            mozjpeg: mozjpeg
+        };
+
+        pipeline = pipeline.jpeg(jpgOptions);
+
+        const jpgBuffer = await pipeline.toBuffer();
+        return jpgBuffer;
+        
+    } catch (error) {
+        throw new Error(`Error convirtiendo HEIC a JPG: ${error.message}`);
+    }
+};
+
+/**
  * Valida que el buffer sea una imagen HEIC válida
  * @param {Buffer} imageBuffer - Buffer a validar
  * @returns {boolean} - true si es HEIC válido
  */
 const validateHeicImage = (imageBuffer) => {
     if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
-        console.log('❌ Buffer inválido o muy pequeño:', imageBuffer?.length || 'undefined');
         return false;
     }
     
@@ -17,124 +52,35 @@ const validateHeicImage = (imageBuffer) => {
         const heicSignature = imageBuffer.toString('ascii', 4, 8);
         const brandSignature = imageBuffer.toString('ascii', 8, 12);
         
-        console.log('🔍 Verificando firmas HEIC:');
-        console.log('  - heicSignature:', heicSignature);
-        console.log('  - brandSignature:', brandSignature);
-        console.log('  - Primeros 16 bytes (hex):', imageBuffer.subarray(0, 16).toString('hex'));
-        
-        // Verificar diferentes variantes de HEIC/HEIF
-        const isValidHeic = heicSignature === 'ftyp' && 
+        return heicSignature === 'ftyp' && 
                (brandSignature === 'heic' || 
                 brandSignature === 'heix' || 
                 brandSignature === 'hevc' || 
                 brandSignature === 'hevx' ||
-                brandSignature === 'mif1' ||  // HEIF genérico
-                brandSignature === 'msf1' ||  // HEIF sequence
-                brandSignature === 'avif');   // AVIF (formato similar)
-        
-        console.log('✅ Validación HEIC:', isValidHeic);
-        return isValidHeic;
-        
+                brandSignature === 'mif1' ||
+                brandSignature === 'msf1');
     } catch (error) {
-        console.log('❌ Error en validación HEIC:', error.message);
         return false;
     }
 };
 
 /**
- * Validación alternativa usando Sharp directamente
- * @param {Buffer} imageBuffer - Buffer a validar
- * @returns {Promise<boolean>} - true si Sharp puede procesar el archivo
- */
-const validateHeicWithSharp = async (imageBuffer) => {
-    try {
-        const metadata = await sharp(imageBuffer).metadata();
-        console.log('📊 Metadata Sharp:', {
-            format: metadata.format,
-            width: metadata.width,
-            height: metadata.height,
-            channels: metadata.channels
-        });
-        
-        return metadata.format === 'heif'; // Sharp identifica HEIC como 'heif'
-    } catch (error) {
-        console.log('❌ Sharp no puede procesar el archivo:', error.message);
-        return false;
-    }
-};
-
-/**
- * Convierte imagen HEIC a PNG
- * @param {Buffer} imageBuffer - Buffer de imagen HEIC
- * @param {Object} options - Opciones de conversión PNG
- * @returns {Promise<Buffer>} - Buffer de imagen PNG
- */
-const convertHeicToPng = async (imageBuffer, options = {}) => {
-    const {
-        compressionLevel = 6,
-        adaptiveFiltering = false,
-        palette = false,
-        quality = 100,
-        effort = 7,
-        colors = 256,
-        dither = 1.0
-    } = options;
-
-    try {
-        let pipeline = sharp(imageBuffer);
-
-        const pngOptions = {
-            compressionLevel: compressionLevel,
-            adaptiveFiltering: adaptiveFiltering,
-            quality: quality,
-            effort: effort
-        };
-
-        // Agregar opciones de paleta solo si está habilitada
-        if (palette) {
-            pngOptions.palette = true;
-            pngOptions.colors = colors;
-            pngOptions.dither = dither;
-        }
-
-        pipeline = pipeline.png(pngOptions);
-
-        const pngBuffer = await pipeline.toBuffer();
-        return pngBuffer;
-        
-    } catch (error) {
-        throw new Error(`Error convirtiendo HEIC a PNG: ${error.message}`);
-    }
-};
-
-/**
- * Procesa conversión completa de HEIC a PNG
+ * Procesa conversión completa de HEIC a JPG
  * @param {Buffer} imageBuffer - Buffer de imagen HEIC
  * @param {Array} processingOptions - Opciones de procesamiento
  * @param {Object} conversionParams - Parámetros específicos de conversión
- * @returns {Promise<Object>} - Resultado con buffer PNG y metadata
+ * @returns {Promise<Object>} - Resultado con buffer JPG y metadata
  */
-const processHeicToPng = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
+const processHeicToJpg = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
-        console.log('🔍 Iniciando validación HEIC...');
-        
-        // Validación con métodos múltiples
-        const isValidBySignature = validateHeicImage(imageBuffer);
-        const isValidBySharp = await validateHeicWithSharp(imageBuffer);
-        
-        console.log('📋 Resultados validación:', {
-            bySignature: isValidBySignature,
-            bySharp: isValidBySharp
-        });
-        
-        if (!isValidBySignature && !isValidBySharp) {
+        if (!validateHeicImage(imageBuffer)) {
             throw new Error('El archivo no es una imagen HEIC válida');
         }
 
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
-        console.log(`📥 Procesando HEIC a PNG: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando HEIC: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
         let processedBuffer = imageBuffer;
         
@@ -151,18 +97,18 @@ const processHeicToPng = async (imageBuffer, processingOptions = [], conversionP
             }
         }
 
-        console.log('🔄 Convirtiendo HEIC a PNG...');
-        const pngBuffer = await convertHeicToPng(processedBuffer, conversionParams.pngOptions);
+        console.log('🔄 Convirtiendo a formato JPG...');
+        const jpgBuffer = await convertHeicToJpg(processedBuffer, conversionParams.jpgOptions);
 
-        const finalMetadata = await sharp(pngBuffer).metadata();
-        const finalSize = pngBuffer.length;
+        const finalMetadata = await sharp(jpgBuffer).metadata();
+        const finalSize = jpgBuffer.length;
 
-        console.log(`📤 PNG generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📤 JPG generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
 
         return {
             success: true,
-            buffer: pngBuffer,
-            format: 'png',
+            buffer: jpgBuffer,
+            format: 'jpg',
             metadata: {
                 original: {
                     format: originalMetadata.format,
@@ -190,14 +136,12 @@ const processHeicToPng = async (imageBuffer, processingOptions = [], conversionP
         };
 
     } catch (error) {
-        console.error('💥 Error completo en processHeicToPng:', error);
-        throw new Error(`Error en proceso HEIC->PNG: ${error.message}`);
+        throw new Error(`Error en proceso HEIC->JPG: ${error.message}`);
     }
 };
 
 module.exports = {
-    convertHeicToPng,
+    convertHeicToJpg,
     validateHeicImage,
-    validateHeicWithSharp,
-    processHeicToPng
+    processHeicToJpg
 };
