@@ -106,7 +106,7 @@ const processAvifToTiff = async (avifBuffer, processingOptions = [], conversionP
             pyramid: false,
             tile: false,
             tileWidth: 256,
-            tileHeight = 256
+            tileHeight: 256
         };
 
         if (processingOptions.includes('optimize-size')) {
