@@ -2,24 +2,21 @@ const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
 /**
- * Valida que el buffer sea una imagen HEIC válida
+ * Valida que el buffer sea una imagen HEIC válida usando Sharp
  * @param {Buffer} imageBuffer - Buffer a validar
- * @returns {boolean} - true si es HEIC válido
+ * @returns {Promise<boolean>} - true si es HEIC válido
  */
-const validateHeicImage = (imageBuffer) => {
-    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
+const validateHeicImage = async (imageBuffer) => {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
         return false;
     }
     
-    // Verificar magic bytes de HEIC/HEIF
-    const heicSignature = imageBuffer.toString('ascii', 4, 8);
-    const brandSignature = imageBuffer.toString('ascii', 8, 12);
-    
-    return heicSignature === 'ftyp' && 
-           (brandSignature === 'heic' || 
-            brandSignature === 'heix' || 
-            brandSignature === 'hevc' || 
-            brandSignature === 'hevx');
+    try {
+        const metadata = await sharp(imageBuffer).metadata();
+        return metadata.format === 'heif'; // Sharp identifica HEIC como 'heif'
+    } catch (error) {
+        return false;
+    }
 };
 
 /**
@@ -75,7 +72,7 @@ const convertHeicToPng = async (imageBuffer, options = {}) => {
  */
 const processHeicToPng = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
-        if (!validateHeicImage(imageBuffer)) {
+        if (!(await validateHeicImage(imageBuffer))) {
             throw new Error('El archivo no es una imagen HEIC válida');
         }
 

@@ -2,84 +2,78 @@ const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
 /**
- * Valida que el buffer sea una imagen WebP válida
+ * Valida que el buffer sea una imagen HEIC válida usando Sharp
  * @param {Buffer} imageBuffer - Buffer a validar
- * @returns {boolean} - true si es WebP válido
+ * @returns {Promise<boolean>} - true si es HEIC válido
  */
-const validateWebpImage = (imageBuffer) => {
-    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
+const validateHeicImage = async (imageBuffer) => {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
         return false;
     }
     
-    // Verificar magic bytes de WebP
-    const riffSignature = imageBuffer.toString('ascii', 0, 4);
-    const webpSignature = imageBuffer.toString('ascii', 8, 12);
-    
-    return riffSignature === 'RIFF' && webpSignature === 'WEBP';
+    try {
+        const metadata = await sharp(imageBuffer).metadata();
+        return metadata.format === 'heif'; // Sharp identifica HEIC como 'heif'
+    } catch (error) {
+        return false;
+    }
 };
 
 /**
- * Convierte imagen WebP a HEIC
- * @param {Buffer} imageBuffer - Buffer de imagen WebP
- * @param {Object} options - Opciones de conversión HEIC
- * @returns {Promise<Buffer>} - Buffer de imagen HEIC
+ * Convierte imagen HEIC a WebP
+ * @param {Buffer} imageBuffer - Buffer de imagen HEIC
+ * @param {Object} options - Opciones de conversión WebP
+ * @returns {Promise<Buffer>} - Buffer de imagen WebP
  */
-const convertWebpToHeic = async (imageBuffer, options = {}) => {
+const convertHeicToWebp = async (imageBuffer, options = {}) => {
     const {
-        quality = 50,
-        compression = 'av1',
-        effort = 4,
-        chromaSubsampling = '4:2:0',
-        bitdepth = 8,
+        quality = 80,
+        alphaQuality = 100,
         lossless = false,
-        background = { r: 255, g: 255, b: 255 }
+        nearLossless = false,
+        smartSubsample = false,
+        effort = 4
     } = options;
 
     try {
         let pipeline = sharp(imageBuffer);
-        const metadata = await sharp(imageBuffer).metadata();
 
-        // Si no es lossless y tiene alpha, considerar el fondo si se especifica
-        if (!lossless && metadata.hasAlpha && options.flatten === true) {
-            pipeline = pipeline.flatten({ background: background });
-        }
-
-        const heicOptions = {
+        const webpOptions = {
             quality: quality,
-            compression: compression,
-            effort: effort,
-            chromaSubsampling: chromaSubsampling,
-            bitdepth: bitdepth,
-            lossless: lossless
+            alphaQuality: alphaQuality,
+            lossless: lossless,
+            nearLossless: nearLossless,
+            smartSubsample: smartSubsample,
+            effort: effort
         };
 
-        pipeline = pipeline.heif(heicOptions);
+        pipeline = pipeline.webp(webpOptions);
 
-        const heicBuffer = await pipeline.toBuffer();
-        return heicBuffer;
+        const webpBuffer = await pipeline.toBuffer();
+        return webpBuffer;
         
     } catch (error) {
-        throw new Error(`Error convirtiendo WebP a HEIC: ${error.message}`);
+        throw new Error(`Error convirtiendo HEIC a WebP: ${error.message}`);
     }
 };
 
 /**
- * Procesa conversión completa de WebP a HEIC
- * @param {Buffer} imageBuffer - Buffer de imagen WebP
+ * Procesa conversión completa de HEIC a WebP
+ * @param {Buffer} imageBuffer - Buffer de imagen HEIC
  * @param {Array} processingOptions - Opciones de procesamiento
  * @param {Object} conversionParams - Parámetros específicos de conversión
- * @returns {Promise<Object>} - Resultado con buffer HEIC y metadata
+ * @returns {Promise<Object>} - Resultado con buffer WebP y metadata
  */
-const processWebpToHeic = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
+const processHeicToWebp = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
-        if (!validateWebpImage(imageBuffer)) {
-            throw new Error('El archivo no es una imagen WebP válida');
+        if (!(await validateHeicImage(imageBuffer))) {
+            throw new Error('El archivo no es una imagen HEIC válida');
         }
 
         const originalMetadata = await sharp(imageBuffer).metadata();
         const originalSize = imageBuffer.length;
 
-        console.log(`📥 Procesando WebP a HEIC: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando HEIC a WebP: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
 
         let processedBuffer = imageBuffer;
         
@@ -96,18 +90,18 @@ const processWebpToHeic = async (imageBuffer, processingOptions = [], conversion
             }
         }
 
-        console.log('🔄 Convirtiendo WebP a HEIC...');
-        const heicBuffer = await convertWebpToHeic(processedBuffer, conversionParams.heicOptions);
+        console.log('🔄 Convirtiendo HEIC a WebP...');
+        const webpBuffer = await convertHeicToWebp(processedBuffer, conversionParams.webpOptions);
 
-        const finalMetadata = await sharp(heicBuffer).metadata();
-        const finalSize = heicBuffer.length;
+        const finalMetadata = await sharp(webpBuffer).metadata();
+        const finalSize = webpBuffer.length;
 
-        console.log(`📤 HEIC generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📤 WebP generado: ${finalMetadata.width}x${finalMetadata.height}, ${(finalSize/1024/1024).toFixed(2)}MB`);
 
         return {
             success: true,
-            buffer: heicBuffer,
-            format: 'heif',
+            buffer: webpBuffer,
+            format: 'webp',
             metadata: {
                 original: {
                     format: originalMetadata.format,
@@ -135,12 +129,12 @@ const processWebpToHeic = async (imageBuffer, processingOptions = [], conversion
         };
 
     } catch (error) {
-        throw new Error(`Error en proceso WebP->HEIC: ${error.message}`);
+        throw new Error(`Error en proceso HEIC->WebP: ${error.message}`);
     }
 };
 
 module.exports = {
-    convertWebpToHeic,
-    validateWebpImage,
-    processWebpToHeic
+    convertHeicToWebp,
+    validateHeicImage,
+    processHeicToWebp
 };

@@ -2,24 +2,21 @@ const sharp = require('sharp');
 const sharedImageProcessing = require('../helpers/shared-image-processing');
 
 /**
- * Valida que el buffer sea una imagen HEIC válida
+ * Valida que el buffer sea una imagen HEIC válida usando Sharp
  * @param {Buffer} imageBuffer - Buffer a validar
- * @returns {boolean} - true si es HEIC válido
+ * @returns {Promise<boolean>} - true si es HEIC válido
  */
-const validateHeicImage = (imageBuffer) => {
-    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length < 12) {
+const validateHeicImage = async (imageBuffer) => {
+    if (!Buffer.isBuffer(imageBuffer) || imageBuffer.length === 0) {
         return false;
     }
     
-    // Verificar magic bytes de HEIC/HEIF
-    const heicSignature = imageBuffer.toString('ascii', 4, 8);
-    const brandSignature = imageBuffer.toString('ascii', 8, 12);
-    
-    return heicSignature === 'ftyp' && 
-           (brandSignature === 'heic' || 
-            brandSignature === 'heix' || 
-            brandSignature === 'hevc' || 
-            brandSignature === 'hevx');
+    try {
+        const metadata = await sharp(imageBuffer).metadata();
+        return metadata.format === 'heif'; // Sharp identifica HEIC como 'heif'
+    } catch (error) {
+        return false;
+    }
 };
 
 /**
@@ -30,31 +27,22 @@ const validateHeicImage = (imageBuffer) => {
  */
 const convertHeicToAvif = async (imageBuffer, options = {}) => {
     const {
-        quality = 50,
-        lossless = false,
+        quality = 80,
         effort = 4,
-        chromaSubsampling = '4:4:4',
-        bitdepth = 8,
-        speed = 8,
-        background = { r: 255, g: 255, b: 255 }
+        lossless = false,
+        speed = 5,
+        chromaSubsampling = '4:2:0'
     } = options;
 
     try {
         let pipeline = sharp(imageBuffer);
-        const metadata = await sharp(imageBuffer).metadata();
-
-        // Si no es lossless y tiene alpha, considerar el fondo si se especifica
-        if (!lossless && metadata.hasAlpha && options.flatten === true) {
-            pipeline = pipeline.flatten({ background: background });
-        }
 
         const avifOptions = {
             quality: quality,
-            lossless: lossless,
             effort: effort,
-            chromaSubsampling: chromaSubsampling,
-            bitdepth: bitdepth,
-            speed: speed
+            lossless: lossless,
+            speed: speed,
+            chromaSubsampling: chromaSubsampling
         };
 
         pipeline = pipeline.avif(avifOptions);
@@ -76,7 +64,7 @@ const convertHeicToAvif = async (imageBuffer, options = {}) => {
  */
 const processHeicToAvif = async (imageBuffer, processingOptions = [], conversionParams = {}) => {
     try {
-        if (!validateHeicImage(imageBuffer)) {
+        if (!(await validateHeicImage(imageBuffer))) {
             throw new Error('El archivo no es una imagen HEIC válida');
         }
 
