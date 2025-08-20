@@ -13,7 +13,7 @@ const validateImageBuffer = async (imageBuffer) => {
 
     try {
         const metadata = await sharp(imageBuffer).metadata();
-        // Verificar que sea realmente BMP o que Sharp pueda procesarlo
+        // Verificar que sea realmente TIFF o que Sharp pueda procesarlo
         return metadata.format !== undefined && metadata.width > 0 && metadata.height > 0;
     } catch (error) {
         return false;
@@ -21,12 +21,12 @@ const validateImageBuffer = async (imageBuffer) => {
 };
 
 /**
- * Convierte BMP a JPG con opciones de calidad
- * @param {Buffer} bmpBuffer - Buffer de imagen BMP
+ * Convierte TIFF a JPG con opciones de calidad
+ * @param {Buffer} tiffBuffer - Buffer de imagen TIFF
  * @param {Object} options - Opciones de conversión JPG
  * @returns {Promise<Buffer>} - Buffer de JPG
  */
-const convertBmpToJpg = async (bmpBuffer, options = {}) => {
+const convertTiffToJpg = async (tiffBuffer, options = {}) => {
     const {
         quality = 90,
         progressive = true,
@@ -36,7 +36,7 @@ const convertBmpToJpg = async (bmpBuffer, options = {}) => {
     } = options;
 
     try {
-        let sharpInstance = sharp(bmpBuffer);
+        let sharpInstance = sharp(tiffBuffer);
 
         // Aplicar conversión a JPG con opciones
         const jpgBuffer = await sharpInstance
@@ -52,45 +52,45 @@ const convertBmpToJpg = async (bmpBuffer, options = {}) => {
         return jpgBuffer;
 
     } catch (error) {
-        throw new Error(`Error convirtiendo BMP a JPG: ${error.message}`);
+        throw new Error(`Error convirtiendo TIFF a JPG: ${error.message}`);
     }
 };
 
 /**
- * Procesa conversión completa de BMP a JPG con opciones
- * @param {Buffer} bmpBuffer - Buffer de imagen BMP
+ * Procesa conversión completa de TIFF a JPG con opciones
+ * @param {Buffer} tiffBuffer - Buffer de imagen TIFF
  * @param {Array} processingOptions - Opciones de procesamiento ('optimize-size', 'improve-quality', 'reduce-noise')
  * @param {Object} conversionParams - Parámetros específicos de conversión
  * @returns {Promise<Object>} - Resultado con buffer JPG y metadata
  */
-const processBmpToJpg = async (bmpBuffer, processingOptions = [], conversionParams = {}) => {
+const processTiffToJpg = async (tiffBuffer, processingOptions = [], conversionParams = {}) => {
     try {
         // Validar que Sharp puede procesar el buffer
-        const isValidImage = await validateImageBuffer(bmpBuffer);
+        const isValidImage = await validateImageBuffer(tiffBuffer);
         if (!isValidImage) {
-            throw new Error(`El archivo no es una imagen válida o está corrupto`);
+            throw new Error(`El archivo no es una imagen TIFF válida o está corrupto`);
         }
 
-        const originalMetadata = await sharp(bmpBuffer).metadata();
-        const originalSize = bmpBuffer.length;
+        const originalMetadata = await sharp(tiffBuffer).metadata();
+        const originalSize = tiffBuffer.length;
 
-        console.log(`📥 Procesando BMP a JPG: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando TIFF a JPG: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
         console.log(`📋 Formato detectado por Sharp: ${originalMetadata.format}`);
 
-        let processedBuffer = bmpBuffer;
+        let processedBuffer = tiffBuffer;
         
         // Aplicar opciones de procesamiento si existen
         if (processingOptions.length > 0) {
             try {
                 processedBuffer = await sharedImageProcessing.processImageWithOptions(
-                    bmpBuffer, 
+                    tiffBuffer, 
                     processingOptions, 
                     conversionParams
                 );
                 console.log(`✅ Aplicadas ${processingOptions.length} opciones de procesamiento`);
             } catch (sharedError) {
                 console.log('⚠️ Error en shared processing, usando buffer original:', sharedError.message);
-                processedBuffer = bmpBuffer;
+                processedBuffer = tiffBuffer;
             }
         }
 
@@ -118,8 +118,8 @@ const processBmpToJpg = async (bmpBuffer, processingOptions = [], conversionPara
             jpgOptions = { ...jpgOptions, ...conversionParams.jpgOptions };
         }
 
-        console.log(`🔄 Convirtiendo BMP a JPG con calidad ${jpgOptions.quality}...`);
-        const jpgBuffer = await convertBmpToJpg(processedBuffer, jpgOptions);
+        console.log(`🔄 Convirtiendo TIFF a JPG con calidad ${jpgOptions.quality}...`);
+        const jpgBuffer = await convertTiffToJpg(processedBuffer, jpgOptions);
 
         const finalSize = jpgBuffer.length;
         const finalMetadata = await sharp(jpgBuffer).metadata();
@@ -159,13 +159,13 @@ const processBmpToJpg = async (bmpBuffer, processingOptions = [], conversionPara
         };
 
     } catch (error) {
-        console.error(`❌ Error en proceso BMP->JPG:`, error.message);
-        throw new Error(`Error en proceso BMP->JPG: ${error.message}`);
+        console.error(`❌ Error en proceso TIFF->JPG:`, error.message);
+        throw new Error(`Error en proceso TIFF->JPG: ${error.message}`);
     }
 };
 
 module.exports = {
-    processBmpToJpg,
-    convertBmpToJpg,
+    processTiffToJpg,
+    convertTiffToJpg,
     validateImageBuffer
 };

@@ -13,7 +13,7 @@ const validateImageBuffer = async (imageBuffer) => {
 
     try {
         const metadata = await sharp(imageBuffer).metadata();
-        // Verificar que sea realmente BMP o que Sharp pueda procesarlo
+        // Verificar que sea realmente TIFF o que Sharp pueda procesarlo
         return metadata.format !== undefined && metadata.width > 0 && metadata.height > 0;
     } catch (error) {
         return false;
@@ -21,116 +21,116 @@ const validateImageBuffer = async (imageBuffer) => {
 };
 
 /**
- * Convierte BMP a JPG con opciones de calidad
- * @param {Buffer} bmpBuffer - Buffer de imagen BMP
- * @param {Object} options - Opciones de conversión JPG
- * @returns {Promise<Buffer>} - Buffer de JPG
+ * Convierte TIFF a AVIF con opciones de calidad
+ * @param {Buffer} tiffBuffer - Buffer de imagen TIFF
+ * @param {Object} options - Opciones de conversión AVIF
+ * @returns {Promise<Buffer>} - Buffer de AVIF
  */
-const convertBmpToJpg = async (bmpBuffer, options = {}) => {
+const convertTiffToAvif = async (tiffBuffer, options = {}) => {
     const {
-        quality = 90,
-        progressive = true,
-        mozjpeg = true,
-        optimizeScans = true,
-        chromaSubsampling = '4:2:0'
+        quality = 50,
+        lossless = false,
+        effort = 4,
+        chromaSubsampling = '4:4:4'
     } = options;
 
     try {
-        let sharpInstance = sharp(bmpBuffer);
+        let sharpInstance = sharp(tiffBuffer);
 
-        // Aplicar conversión a JPG con opciones
-        const jpgBuffer = await sharpInstance
-            .jpeg({
+        // Aplicar conversión a AVIF con opciones
+        const avifBuffer = await sharpInstance
+            .avif({
                 quality: quality,
-                progressive: progressive,
-                mozjpeg: mozjpeg,
-                optimizeScans: optimizeScans,
+                lossless: lossless,
+                effort: effort,
                 chromaSubsampling: chromaSubsampling
             })
             .toBuffer();
 
-        return jpgBuffer;
+        return avifBuffer;
 
     } catch (error) {
-        throw new Error(`Error convirtiendo BMP a JPG: ${error.message}`);
+        throw new Error(`Error convirtiendo TIFF a AVIF: ${error.message}`);
     }
 };
 
 /**
- * Procesa conversión completa de BMP a JPG con opciones
- * @param {Buffer} bmpBuffer - Buffer de imagen BMP
+ * Procesa conversión completa de TIFF a AVIF con opciones
+ * @param {Buffer} tiffBuffer - Buffer de imagen TIFF
  * @param {Array} processingOptions - Opciones de procesamiento ('optimize-size', 'improve-quality', 'reduce-noise')
  * @param {Object} conversionParams - Parámetros específicos de conversión
- * @returns {Promise<Object>} - Resultado con buffer JPG y metadata
+ * @returns {Promise<Object>} - Resultado con buffer AVIF y metadata
  */
-const processBmpToJpg = async (bmpBuffer, processingOptions = [], conversionParams = {}) => {
+const processTiffToAvif = async (tiffBuffer, processingOptions = [], conversionParams = {}) => {
     try {
         // Validar que Sharp puede procesar el buffer
-        const isValidImage = await validateImageBuffer(bmpBuffer);
+        const isValidImage = await validateImageBuffer(tiffBuffer);
         if (!isValidImage) {
-            throw new Error(`El archivo no es una imagen válida o está corrupto`);
+            throw new Error(`El archivo no es una imagen TIFF válida o está corrupto`);
         }
 
-        const originalMetadata = await sharp(bmpBuffer).metadata();
-        const originalSize = bmpBuffer.length;
+        const originalMetadata = await sharp(tiffBuffer).metadata();
+        const originalSize = tiffBuffer.length;
 
-        console.log(`📥 Procesando BMP a JPG: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📥 Procesando TIFF a AVIF: ${originalMetadata.width}x${originalMetadata.height}, ${(originalSize/1024/1024).toFixed(2)}MB`);
         console.log(`📋 Formato detectado por Sharp: ${originalMetadata.format}`);
 
-        let processedBuffer = bmpBuffer;
+        let processedBuffer = tiffBuffer;
         
         // Aplicar opciones de procesamiento si existen
         if (processingOptions.length > 0) {
             try {
                 processedBuffer = await sharedImageProcessing.processImageWithOptions(
-                    bmpBuffer, 
+                    tiffBuffer, 
                     processingOptions, 
                     conversionParams
                 );
                 console.log(`✅ Aplicadas ${processingOptions.length} opciones de procesamiento`);
             } catch (sharedError) {
                 console.log('⚠️ Error en shared processing, usando buffer original:', sharedError.message);
-                processedBuffer = bmpBuffer;
+                processedBuffer = tiffBuffer;
             }
         }
 
-        // Determinar opciones de JPG basadas en las opciones seleccionadas
-        let jpgOptions = {
-            quality: 90,
-            progressive: true,
-            mozjpeg: true,
-            optimizeScans: true,
-            chromaSubsampling: '4:2:0'
+        // Determinar opciones de AVIF basadas en las opciones seleccionadas
+        let avifOptions = {
+            quality: 50,
+            lossless: false,
+            effort: 4,
+            chromaSubsampling: '4:4:4'
         };
 
         if (processingOptions.includes('optimize-size')) {
-            jpgOptions.quality = 80;
-            jpgOptions.chromaSubsampling = '4:2:0'; // Más compresión
+            avifOptions.quality = 40;
+            avifOptions.effort = 6; // Más esfuerzo para mejor compresión
+            avifOptions.chromaSubsampling = '4:2:0';
         }
 
         if (processingOptions.includes('improve-quality')) {
-            jpgOptions.quality = 95;
-            jpgOptions.chromaSubsampling = '4:4:4'; // Menos compresión, más calidad
+            avifOptions.quality = 70;
+            avifOptions.lossless = false;
+            avifOptions.effort = 6;
+            avifOptions.chromaSubsampling = '4:4:4';
         }
 
         // Fusionar con parámetros personalizados si existen
-        if (conversionParams.jpgOptions) {
-            jpgOptions = { ...jpgOptions, ...conversionParams.jpgOptions };
+        if (conversionParams.avifOptions) {
+            avifOptions = { ...avifOptions, ...conversionParams.avifOptions };
         }
 
-        console.log(`🔄 Convirtiendo BMP a JPG con calidad ${jpgOptions.quality}...`);
-        const jpgBuffer = await convertBmpToJpg(processedBuffer, jpgOptions);
+        console.log(`🔄 Convirtiendo TIFF a AVIF con calidad ${avifOptions.quality}...`);
+        const avifBuffer = await convertTiffToAvif(processedBuffer, avifOptions);
 
-        const finalSize = jpgBuffer.length;
-        const finalMetadata = await sharp(jpgBuffer).metadata();
+        const finalSize = avifBuffer.length;
+        const finalMetadata = await sharp(avifBuffer).metadata();
 
-        console.log(`📤 JPG generado exitosamente: ${(finalSize/1024/1024).toFixed(2)}MB`);
+        console.log(`📤 AVIF generado exitosamente: ${(finalSize/1024/1024).toFixed(2)}MB`);
         console.log(`📊 Reducción de tamaño: ${((1 - finalSize/originalSize) * 100).toFixed(1)}%`);
 
         return {
             success: true,
-            buffer: jpgBuffer,
-            format: 'jpg',
+            buffer: avifBuffer,
+            format: 'avif',
             metadata: {
                 original: {
                     format: originalMetadata.format,
@@ -150,7 +150,7 @@ const processBmpToJpg = async (bmpBuffer, processingOptions = [], conversionPara
                 },
                 processing: {
                     appliedOptions: processingOptions,
-                    jpgQuality: jpgOptions.quality,
+                    avifQuality: avifOptions.quality,
                     sizeChange: finalSize - originalSize,
                     sizeChangePercent: ((finalSize - originalSize) / originalSize * 100).toFixed(1),
                     compressionRatio: ((1 - finalSize/originalSize) * 100).toFixed(1) + '%'
@@ -159,13 +159,13 @@ const processBmpToJpg = async (bmpBuffer, processingOptions = [], conversionPara
         };
 
     } catch (error) {
-        console.error(`❌ Error en proceso BMP->JPG:`, error.message);
-        throw new Error(`Error en proceso BMP->JPG: ${error.message}`);
+        console.error(`❌ Error en proceso TIFF->AVIF:`, error.message);
+        throw new Error(`Error en proceso TIFF->AVIF: ${error.message}`);
     }
 };
 
 module.exports = {
-    processBmpToJpg,
-    convertBmpToJpg,
+    processTiffToAvif,
+    convertTiffToAvif,
     validateImageBuffer
 };
