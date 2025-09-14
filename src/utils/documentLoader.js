@@ -6,6 +6,7 @@
 // Módulos de conversión de documentos
 const PdfToDocx = require('../modules/PdfToDocx');
 const DocxToPdf = require('../modules/DocxToPdf');
+const WordToPdf = require('../modules/WordToPdf');
 
 /**
  * Configuración centralizada de todas las conversiones de documentos
@@ -26,7 +27,21 @@ const DOCUMENT_CONVERSION_MODULES = {
             }
         }
     },
-    
+    'word-to-pdf': {
+    processor: WordToPdf.processWordToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            preserveFormatting: true,
+            compressPdf: false,
+            pageMargins: { top: 50, bottom: 50, left: 50, right: 50 },
+            fontSize: 12,
+            fontFamily: 'Helvetica',
+            lineHeight: 1.2,
+            pageSize: 'A4'
+        }
+    }
+},
     // Conversiones DOCX
     'docx-to-pdf': {
         processor: DocxToPdf.processDocxToPdf,
