@@ -7,7 +7,10 @@
 const PdfToDocx = require('../modules/PdfToDocx');
 const DocxToPdf = require('../modules/DocxToPdf');
 const WordToPdf = require('../modules/WordToPdf');
-
+const TxtToPdf = require('../modules/TxtToPdf');
+const TxtToDocx = require('../modules/TxtToDocx');
+const TxtToPpt = require('../modules/TxtToPpt');
+const TxtToHtml = require('../modules/TxtToHtml');
 /**
  * Configuración centralizada de todas las conversiones de documentos
  * @type {Object} - Mapeo de conversiones con sus procesadores y opciones
@@ -39,6 +42,60 @@ const DOCUMENT_CONVERSION_MODULES = {
             fontFamily: 'Helvetica',
             lineHeight: 1.2,
             pageSize: 'A4'
+        }
+    }
+},
+
+// Configuraciones backend
+'txt-to-pdf': {
+    processor: TxtToPdf.processTxtToPdf,
+    outputFormat: 'pdf',
+    conversionOptions: {
+        pdfOptions: {
+            format: 'A4',
+            fontSize: '12px',
+            fontFamily: 'Arial, sans-serif',
+            lineHeight: '1.5',
+            margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' }
+        }
+    }
+},
+'txt-to-docx': {
+    processor: TxtToDocx.processTxtToDocx,
+    outputFormat: 'docx',
+    conversionOptions: {
+        docxOptions: {
+            fontSize: 24,
+            fontFamily: 'Arial',
+            lineSpacing: 240,
+            autoDetectTitles: true
+        }
+    }
+},
+
+'txt-to-ppt': {
+    processor: TxtToPpt.processTxtToPptx,
+    outputFormat: 'pptx',
+    conversionOptions: {
+        pptxOptions: {
+            fontSize: 18,
+            titleFontSize: 28,
+            fontFamily: 'Arial',
+            theme: 'light',
+            maxWordsPerSlide: 150
+        }
+    }
+},
+'txt-to-html': {
+    processor: TxtToHtml.processTxtToHtml,
+    outputFormat: 'html',
+    conversionOptions: {
+        htmlOptions: {
+            theme: 'light',
+            fontSize: '16px',
+            fontFamily: 'Arial, sans-serif',
+            autoDetectTitles: true,
+            linkify: true
         }
     }
 },
